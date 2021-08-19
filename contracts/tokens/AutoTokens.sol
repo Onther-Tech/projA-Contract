@@ -18,7 +18,23 @@ contract AutoTokens is ERC20, AccessibleCommon {
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setupRole(ADMIN_ROLE, msg.sender);
     }
-      
+    
+    function mint(address account, uint256 amount) external {
+        require(isAdmin(msg.sender), "you're not admin");
+        _mint(account,amount);
+    }
+
+    function burn(address account, uint256 amount, bool all) external {
+        require(isAdmin(msg.sender), "you're not admin");
+        
+        if(all){
+            uint256 allbalance = balanceOf(account);
+            _burn(account,allbalance);
+        } else {
+            _burn(account,amount);
+        }
+    }
+
     //approveAndCall과 permit도 추가
 
 

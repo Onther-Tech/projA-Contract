@@ -7,6 +7,11 @@ import {IERC20TokenFactory} from "../interfaces/IERC20TokenFactory.sol";
 
 contract ERC20TokenFactory is IERC20TokenFactory {
     address owner;
+
+    //실제코드에서는 필요없음 테스트용
+    event Created(
+        address token
+    );
     constructor(
         address _owner
     ) public  {
@@ -23,6 +28,8 @@ contract ERC20TokenFactory is IERC20TokenFactory {
             new AutoTokens(_name, _symbol,_initialSupply);
 
         token.transferAdmin(_owner);
+
+        emit Created(address(token));
 
         return address(token);
     }
