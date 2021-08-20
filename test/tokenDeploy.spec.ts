@@ -94,9 +94,22 @@ describe("token deploy", () => {
                     expect(tx2).to.be.equal(false)
                 })
                 it("token addAdmin check", async () => {
-                    let tx = await docToken.isAdmin(tokenOwner.address);
-                    
+                    await docToken.connect(tokenOwner).addAdmin(account1.address);
+                    let tx = await docToken.isAdmin(account1.address);
                     expect(tx).to.be.equal(true)
+                })
+                it("token transferAdmin check", async () => {
+                    await docToken.connect(account1).transferAdmin(account2.address);
+                    let tx = await docToken.isAdmin(account1.address);
+                    expect(tx).to.be.equal(false)
+
+                    let tx2 = await docToken.isAdmin(account2.address);
+                    expect(tx2).to.be.equal(true)
+                })
+                it("token removeAdmin check", async () => {
+                    await docToken.connect(account2).removeAdmin(account2.address);
+                    let tx2 = await docToken.isAdmin(account2.address);
+                    expect(tx2).to.be.equal(false)
                 })
             })
         })
