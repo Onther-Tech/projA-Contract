@@ -3,9 +3,7 @@
 pragma solidity ^0.8.0;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import "../common/AccessiblePlusCommon.sol";
 
 
@@ -21,9 +19,10 @@ contract AutoTokens is ERC20, AccessiblePlusCommon {
     constructor(
         string memory _name,
         string memory _symbol,
-        uint256 initialSupply
+        uint256 initialSupply,
+        address _owner
     ) ERC20(_name, _symbol) {
-        _mint(msg.sender, initialSupply);
+        _mint(_owner, initialSupply);
 
         uint256 chainId;
         assembly {
@@ -59,22 +58,14 @@ contract AutoTokens is ERC20, AccessiblePlusCommon {
         return true;
     }
 
-    function burn(address account, uint256 amount, bool all) 
+    function burn(address account, uint256 amount) 
         external 
         onlyBurner
         returns (bool)
     {
-
-        if(all){
-            uint256 allbalance = balanceOf(account);
-            _burn(account,allbalance);
-        } else {
-            _burn(account,amount);
-        }
+        _burn(account,amount);
         return true;
     }
-
-    //approveAndCall과 permit도 추가
 
     /// @dev Authorizes the owner's token to be used by the spender as much as the value.
     /// @dev The signature must have the owner's signature.
@@ -94,24 +85,24 @@ contract AutoTokens is ERC20, AccessiblePlusCommon {
         bytes32 r,
         bytes32 s
     ) external {
-        require(deadline >= block.timestamp, "TOS: permit EXPIRED");
+        require(deadline >= block.timestamp, "permit EXPIRED");
 
         bytes32 digest =
             hashPermit(owner, spender, value, deadline, nonces[owner]++);
 
-        require(owner != spender, "TOS: approval to current owner");
+        require(owner != spender, "approval to current owner");
 
         // if (Address.isContract(owner)) {
         //     require(IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) == 0x1626ba7e, 'Unauthorized');
         // } else {
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress != address(0), "TOS: Invalid signature");
-        require(recoveredAddress == owner, "TOS: Unauthorized");
+        require(recoveredAddress != address(0), "Invalid signature");
+        require(recoveredAddress == owner, "Unauthorized");
         // }
         _approve(owner, spender, value);
     }
 
-        /// @dev verify the signature
+    /// @dev verify the signature
     /// @param owner the token's owner
     /// @param spender the account that spend owner's token
     /// @param value the amount to be approve to spend
@@ -171,6 +162,7 @@ contract AutoTokens is ERC20, AccessiblePlusCommon {
                 )
             );
     }
+
 
 }
 

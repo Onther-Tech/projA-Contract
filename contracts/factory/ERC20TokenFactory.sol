@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import { AutoTokens } from "../tokens/AutoTokens.sol";
-import {IERC20TokenFactory} from "../interfaces/IERC20TokenFactory.sol";
+import { IERC20TokenFactory } from "../interfaces/IERC20TokenFactory.sol";
 
 contract ERC20TokenFactory is IERC20TokenFactory {
     address owner;
@@ -25,7 +25,7 @@ contract ERC20TokenFactory is IERC20TokenFactory {
     ) external override returns (address) {
         require(msg.sender == owner, "your not tokenFactoryOwner");
         AutoTokens token =
-            new AutoTokens(_name, _symbol,_initialSupply);
+            new AutoTokens(_name, _symbol,_initialSupply, _owner);
 
         token.transferAdmin(_owner);
 

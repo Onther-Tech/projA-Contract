@@ -83,6 +83,10 @@ describe("token deploy", () => {
                     let tx = await docToken.totalSupply();
                     expect(tx).to.be.equal(100000)
                 })
+                it("token balanceOf check", async () => {
+                    let tx = await docToken.balanceOf(tokenOwner.address);
+                    expect(tx).to.be.equal(100000)
+                })
             })
 
             describe("token admin test", () => {
@@ -112,6 +116,83 @@ describe("token deploy", () => {
                     expect(tx2).to.be.equal(false)
                 })
             })
+
+            describe("token minter and burner test", () => {
+                it("token addMinter check", async () => {
+                    let tx = await docToken.connect(tokenOwner).isMinter(account1.address);
+                    expect(tx).to.be.equal(false)
+
+                    await docToken.connect(tokenOwner).addMinter(account1.address);
+
+                    let tx2 = await docToken.connect(tokenOwner).isMinter(account1.address);
+                    expect(tx2).to.be.equal(true)
+                })
+                it("token addBurner check", async () => {
+                    let tx = await docToken.connect(tokenOwner).isBurner(account2.address);
+                    expect(tx).to.be.equal(false)
+
+                    await docToken.connect(tokenOwner).addBurner(account2.address);
+
+                    let tx2 = await docToken.connect(tokenOwner).isBurner(account2.address);
+                    expect(tx2).to.be.equal(true)
+                })
+                it("token removeMinter check", async () => {
+                    let tx = await docToken.isMinter(account1.address);
+                    expect(tx).to.be.equal(true)
+
+                    await docToken.connect(tokenOwner).removeMinter(account1.address);
+
+                    let tx2 = await docToken.isMinter(account1.address);
+                    expect(tx2).to.be.equal(false)
+                })
+                it("token removeBurner check", async () => {
+                    let tx = await docToken.isBurner(account2.address);
+                    expect(tx).to.be.equal(true)
+
+                    await docToken.connect(tokenOwner).removeBurner(account2.address);
+
+                    let tx2 = await docToken.isBurner(account2.address);
+                    expect(tx2).to.be.equal(false)
+                })
+            })
+
+
+            describe("token mint and burn test", () => {
+                it("token mint check", async () => {
+                    await docToken.connect(tokenOwner).addMinter(account1.address);
+                    let tx = await docToken.connect(tokenOwner).isMinter(account1.address);
+                    expect(tx).to.be.equal(true)
+                    let tx2 = await docToken.connect(tokenOwner).balanceOf(account1.address);
+                    expect(tx2).to.be.equal(0)
+                    await docToken.connect(account1).mint(account1.address, 1000)
+                    let tx3 = await docToken.connect(tokenOwner).balanceOf(account1.address);
+                    expect(tx3).to.be.equal(1000)
+                })
+                it("token burn check", async () => {
+                    await docToken.connect(tokenOwner).addBurner(account2.address);
+                    let tx = await docToken.connect(tokenOwner).isBurner(account2.address);
+                    expect(tx).to.be.equal(true)
+                    let tx2 = await docToken.connect(tokenOwner).balanceOf(account1.address);
+                    expect(tx2).to.be.equal(1000)
+                    await docToken.connect(account2).burn(account1.address, 500)
+                    let tx3 = await docToken.connect(tokenOwner).balanceOf(account1.address);
+                    expect(tx3).to.be.equal(500)
+                })
+                // it("token removeMinter check", async () => {
+                //     await docToken.connect(account1).transferAdmin(account2.address);
+                //     let tx = await docToken.isAdmin(account1.address);
+                //     expect(tx).to.be.equal(false)
+
+                //     let tx2 = await docToken.isAdmin(account2.address);
+                //     expect(tx2).to.be.equal(true)
+                // })
+                // it("token removeBurner check", async () => {
+                //     await docToken.connect(account2).removeAdmin(account2.address);
+                //     let tx2 = await docToken.isAdmin(account2.address);
+                //     expect(tx2).to.be.equal(false)
+                // })
+            })
+            
         })
     })
 })
