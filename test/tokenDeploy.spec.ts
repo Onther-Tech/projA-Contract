@@ -1,5 +1,6 @@
 
 import { BigNumber } from "@ethersproject/bignumber";
+const { time } = require("@openzeppelin/test-helpers");
 
 const { AddressZero } = require("@ethersproject/constants");
 const { ethers, network } = require('hardhat')
@@ -8,6 +9,7 @@ const { solidity } = require('ethereum-waffle')
 const { expect } = chai
 
 chai.use(solidity)
+
 
 describe("token deploy", () => {
     const tokenSupply = 100000
@@ -25,11 +27,28 @@ describe("token deploy", () => {
     let account2 : any
     let account3 : any
 
+    let mnemonic = "announce room limb pattern dry unit scale effort smooth jazz weasel alcohol"
+    let walletMnemonic : any
+    let walletPrivateKey : any
+
     before(async () => {
         [ factoryOwner, tokenOwner, account1, account2, account3 ] = await ethers.getSigners();
         tokenFactory = await ethers.getContractFactory("ERC20TokenFactory");
         // console.log(tokenFactory)
         prov = ethers.getDefaultProvider();
+
+        // let random = await ethers.Wallet.createRandom()
+        // console.log("random :", random)
+
+        walletMnemonic = ethers.Wallet.fromMnemonic(mnemonic)
+
+        walletPrivateKey = new ethers.Wallet(walletMnemonic.privateKey)
+
+        if( walletMnemonic.address === walletPrivateKey.address ) {
+            console.log("okay")
+            console.log(walletMnemonic.address)
+            console.log(walletMnemonic.privateKey)
+        }
 
         factory = await tokenFactory.deploy(factoryOwner.address);
     })
@@ -37,7 +56,7 @@ describe("token deploy", () => {
     describe('tokenFactory test', () => {
         describe('token create test', () => {
             it("creatToken not factoryOwner", async () => {
-                let tx = factory.connect(tokenOwner).create("DocToken", "DOC", 100000, tokenOwner.address)
+                let tx = factory.connect(tokenOwner).create("DocToken", "≈", 100000, tokenOwner.address)
     
                 await expect(tx).to.be.revertedWith("your not tokenFactoryOwner")
             })
@@ -178,19 +197,55 @@ describe("token deploy", () => {
                     let tx3 = await docToken.connect(tokenOwner).balanceOf(account1.address);
                     expect(tx3).to.be.equal(500)
                 })
-                // it("token removeMinter check", async () => {
-                //     await docToken.connect(account1).transferAdmin(account2.address);
-                //     let tx = await docToken.isAdmin(account1.address);
-                //     expect(tx).to.be.equal(false)
+            })
 
-                //     let tx2 = await docToken.isAdmin(account2.address);
-                //     expect(tx2).to.be.equal(true)
-                // })
-                // it("token removeBurner check", async () => {
-                //     await docToken.connect(account2).removeAdmin(account2.address);
-                //     let tx2 = await docToken.isAdmin(account2.address);
-                //     expect(tx2).to.be.equal(false)
-                // })
+            describe("token permit test", () => {
+                it("permit check", async () => {
+                    let amount = 100
+
+                    const nonce = parseInt(await docToken.nonces(tokenOwner.address))
+                    const deadline = parseInt(await time.latest()) + 30;
+                    const rawSignature = await tokenOwner._signTypedData(
+                        {
+                            chainId: parseInt(await network.provider.send("eth_chainId")),
+                            name: "DocToken",
+                            version: "DOC",
+                            verifyingContract: docToken.address,
+                        },
+                        {
+                            Permit: [
+                              { name: "owner", type: "address" },
+                              { name: "spender", type: "address" },
+                              { name: "value", type: "uint256" },
+                              { name: "nonce", type: "uint256" },
+                              { name: "deadline", type: "uint256" },
+                            ],
+                        },
+                        {
+                            owner: tokenOwner.address,
+                            spender: account1.address,
+                            value: amount,
+                            nonce,
+                            deadline,
+                        }
+                    );
+                    const signature = ethers.utils.splitSignature(rawSignature);
+                    
+                    await docToken.connect(tokenOwner).permit(
+                        tokenOwner.address,
+                        account1.address,
+                        amount,
+                        deadline,
+                        signature.v,
+                        signature.r,
+                        signature.s
+                    );
+                    
+                    let tx = await docToken.allowance(tokenOwner.address, account1.address)
+
+                    expect(tx).to.be.equal(100)
+                })
+
             })
             
         })
