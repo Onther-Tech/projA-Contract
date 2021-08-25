@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import "erc-payable-token/contracts/token/ERC1363/ERC1363.sol";
 import "../common/AccessiblePlusCommon.sol";
 
 
-contract AutoTokens is ERC20, AccessiblePlusCommon {
+contract AutoTokens is ERC1363, AccessiblePlusCommon {
     bytes32 public DOMAIN_SEPARATOR;
     mapping(address => uint256) public nonces;
 
@@ -47,6 +47,10 @@ contract AutoTokens is ERC20, AccessiblePlusCommon {
         _setupRole(ADMIN_ROLE, msg.sender);
         _setupRole(BURNER_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1363, AccessControl) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
     
     function mint(address account, uint256 amount) 
