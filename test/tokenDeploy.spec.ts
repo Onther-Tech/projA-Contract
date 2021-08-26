@@ -10,8 +10,6 @@ const { expect } = chai
 
 chai.use(solidity)
 
-const { shouldSupportInterfaces } = require('./introspection/SupportsInterface');
-
 describe("token deploy", () => {
     const tokenSupply = 100000
 
@@ -324,28 +322,6 @@ describe("token deploy", () => {
             })
             
         })
-
-        describe("ERC1363 test", () => {
-            it("before balance check", async () => {
-                let balance1 = await docToken.balanceOf(tokenOwner.address)
-                let balance2 = await docToken.balanceOf(account1.address)
-                let balance3 = await docToken.balanceOf(account2.address)
-                // console.log(balance1.toString())
-                // console.log(balance2.toString())
-                // console.log(balance3.toString())
-                await docToken.connect(tokenOwner).transfer(account1.address, 900)
-                await docToken.connect(tokenOwner).transfer(account2.address, 1000)
-                let balance4 = await docToken.balanceOf(account1.address)
-                let balance5 = await docToken.balanceOf(account2.address)
-                console.log(balance4.toString())
-                console.log(balance5.toString())
-            })
-            it("approveAndCall test", async () => {
-                console.log(docToken.approveAndCall(account2.address, 100, "abc"))
-                await docToken.connect(account1).approveAndCall(account2.address, 100);
-                // let allowance = await docToken.allowance(account1.address, account2.address);
-                // console.log(allowance);
-            })
-        })
+        
     })
 })
