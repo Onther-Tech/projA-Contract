@@ -1,6 +1,6 @@
 
 import { BigNumber } from "@ethersproject/bignumber";
-const { time } = require("@openzeppelin/test-helpers");
+const { time, BN } = require("@openzeppelin/test-helpers");
 
 const { AddressZero, MaxUint256 } = require("@ethersproject/constants");
 const { ethers, network } = require('hardhat')
@@ -10,18 +10,22 @@ const { expect } = chai
 
 chai.use(solidity)
 
+const { shouldSupportInterfaces } = require('./introspection/SupportsInterface');
 
 describe("token deploy", () => {
     const tokenSupply = 100000
 
     let factoryOwner: any
     let tokenOwner: any
+    let mockTokenOwner: any
 
     let factory: any
     let tokenFactory: any
+    let ERC20Factory: any
     let tokenContractAddress: any
     let prov: any
     let docToken: any
+    let mockToken: any
 
     let account1 : any
     let account2 : any
@@ -32,25 +36,30 @@ describe("token deploy", () => {
     let walletPrivateKey : any
 
     before(async () => {
-        [ factoryOwner, tokenOwner, account1, account2, account3 ] = await ethers.getSigners();
+        [ factoryOwner, tokenOwner, mockTokenOwner, account1, account2, account3 ] = await ethers.getSigners();
         tokenFactory = await ethers.getContractFactory("ERC20TokenFactory");
         // console.log(tokenFactory)
         prov = ethers.getDefaultProvider();
 
-        // let random = await ethers.Wallet.createRandom()
-        // console.log("random :", random)
-
-        walletMnemonic = ethers.Wallet.fromMnemonic(mnemonic)
-
-        walletPrivateKey = new ethers.Wallet(walletMnemonic.privateKey)
-
-        if( walletMnemonic.address === walletPrivateKey.address ) {
-            console.log("okay")
-            console.log(walletMnemonic.address)
-            console.log(walletMnemonic.privateKey)
-        }
-
         factory = await tokenFactory.deploy(factoryOwner.address);
+
+        ERC20Factory = await ethers.getContractFactory("ERC20Mock");
+
+        mockToken = await ERC20Factory.connect(mockTokenOwner).deploy("MOCK", "MOC");
+
+        let erc20balance = await mockToken.balanceOf(mockTokenOwner.address)
+        console.log(erc20balance.toString())
+
+        // walletMnemonic = ethers.Wallet.fromMnemonic(mnemonic)
+
+        // walletPrivateKey = new ethers.Wallet(walletMnemonic.privateKey)
+
+        // if( walletMnemonic.address === walletPrivateKey.address ) {
+        //     console.log("okay")
+        //     console.log(walletMnemonic.address)
+        //     console.log(walletMnemonic.privateKey)
+        // }
+
     })
 
     describe('tokenFactory test', () => {
@@ -207,8 +216,6 @@ describe("token deploy", () => {
                         let amount = 100
     
                         const nonce = parseInt(await docToken.nonces(tokenOwner.address))
-                        // const deadline = parseInt(await time.latest()) + 30;
-                        // console.log("deadline :", deadline)
                         const deadline = MaxUint256
                         const rawSignature = await tokenOwner._signTypedData(
                             {
@@ -316,6 +323,29 @@ describe("token deploy", () => {
 
             })
             
+        })
+
+        describe("ERC1363 test", () => {
+            it("before balance check", async () => {
+                let balance1 = await docToken.balanceOf(tokenOwner.address)
+                let balance2 = await docToken.balanceOf(account1.address)
+                let balance3 = await docToken.balanceOf(account2.address)
+                // console.log(balance1.toString())
+                // console.log(balance2.toString())
+                // console.log(balance3.toString())
+                await docToken.connect(tokenOwner).transfer(account1.address, 900)
+                await docToken.connect(tokenOwner).transfer(account2.address, 1000)
+                let balance4 = await docToken.balanceOf(account1.address)
+                let balance5 = await docToken.balanceOf(account2.address)
+                console.log(balance4.toString())
+                console.log(balance5.toString())
+            })
+            it("approveAndCall test", async () => {
+                console.log(docToken.approveAndCall(account2.address, 100, "abc"))
+                await docToken.connect(account1).approveAndCall(account2.address, 100);
+                // let allowance = await docToken.allowance(account1.address, account2.address);
+                // console.log(allowance);
+            })
         })
     })
 })

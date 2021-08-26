@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-import "../token/ERC1363/IERC1363.sol";
-import "../token/ERC1363/IERC1363Receiver.sol";
-import "../token/ERC1363/IERC1363Spender.sol";
+import "erc-payable-token/contracts/token/ERC1363/ERC1363.sol";
+import "erc-payable-token/contracts/token/ERC1363/IERC1363Receiver.sol";
+import "erc-payable-token/contracts/token/ERC1363/IERC1363Spender.sol";
 
 /**
  * @title ERC1363Payable
