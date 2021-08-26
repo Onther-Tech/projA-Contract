@@ -1,10 +1,10 @@
-require("@nomiclabs/hardhat-waffle");
-require("dotenv/config");
-require("@nomiclabs/hardhat-etherscan");
-
-require('@nomiclabs/hardhat-truffle4');
-require("solidity-coverage");
 require('chai/register-should');
+require('@nomiclabs/hardhat-ganache');
+require('@nomiclabs/hardhat-truffle5');
+require('solidity-coverage');
+
+//typescript test need
+require("@nomiclabs/hardhat-waffle");
 
 
 /**
@@ -24,9 +24,9 @@ module.exports = {
     //   accounts: [ `${process.env.RINKEBY_PRIVATE_KEY}` ]
     // }
   },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
-  },
+  // etherscan: {
+  //   apiKey: process.env.ETHERSCAN_API_KEY
+  // },
   solidity: {
     version: '0.8.0',
     settings: {
