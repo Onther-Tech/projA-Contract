@@ -291,7 +291,7 @@ describe("erc1363 test", () =>{
             });
 
             it('onTransferReceived test', async () => {
-                const receipt = await this.token.transferAndCall(receiver, 100, {from: tokenOwner.address})
+                const receipt = await transferAndCallWithData.call(this, receiver, 100, { from: tokenOwner.address });
                 // console.log(receipt.logs[0].args[2])
 
                 await expectEvent.inTransaction(receipt.tx, ERC1363Receiver, 'Received', {
@@ -305,18 +305,19 @@ describe("erc1363 test", () =>{
             describe('revert test', () => {
                 it('spender is not contract test', async () => {
                     let tx = this.token.methods['transferAndCall(address,uint256,bytes)'](account2.address, 100, data, {from: account1.address})
-                    await expect(tx).to.be.revertedWith('ERC1363: _checkAndCallTransfer revert')
+                    await expect(tx).to.be.revertedWith('ERC1363: _checkAndCallTransfer reverts')
                 })
                 it('bytescode wrong test', async () => {
-                    let tx = this.token.methods['transferAndCall(address,uint256,bytes)'](account2.address, 100, data, {from: account1.address})
-                    await expect(tx).to.be.revertedWith('ERC1363: _checkAndCallTransfer revert')
+                    let tx = this.token.methods['transferAndCall(address,uint256,bytes)'](invaildreceiver, 100, data, {from: account1.address})
+                    await expect(tx).to.be.revertedWith('ERC1363: _checkAndCallTransfer reverts')
                 })
                 it('spender contract bool true test', async () => {
-                    let tx = this.token.methods['transferAndCall(address,uint256,bytes)'](account2.address, 100, data, {from: account1.address})
+                    let tx = this.token.methods['transferAndCall(address,uint256,bytes)'](invaildreceiver2, 100, data, {from: account1.address})
                     await expect(tx).to.be.revertedWith('ERC1363ReceiverMock: throwing')
                 })
             })
         })
-  
     })
+
+
 })
