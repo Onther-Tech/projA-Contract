@@ -1,4 +1,5 @@
 const { BN, constants, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
 const { ZERO_ADDRESS } = constants;
 
 const { ethers, network } = require('hardhat')
@@ -36,12 +37,12 @@ describe("crownSale test", () =>{
 
 
     before(async () => {
-        [ tokenOwner, anoTokenOwner, crownOwner, account1, account2, account3 ] = await ethers.getSigners();
+        [ tokenOwner, erc20Owner, anoTokenOwner, crownOwner, account1, account2, account3 ] = await ethers.getSigners();
         
         this.Doctoken = await autoToken.new(name, symbol, balance, tokenOwner.address);
         docTokenAddress = this.Doctoken.address
 
-        this.erc20Token = await ERC20Token.new(name2, symbol2);
+        this.erc20Token = await ERC20Token.new(name2, symbol2, { from: erc20Owner.address });
         erc20TokenAddress = this.erc20Token.address
 
         this.notAcceptedErc1363Token = await ERC1363.new(name3, symbol3, anoTokenOwner.address, balance);
@@ -49,7 +50,8 @@ describe("crownSale test", () =>{
         this.crowdsale = await Crowdsale.new(rate, crownOwner.address, this.erc20Token.address, this.Doctoken.address);
         crowdSaleContract = this.crowdsale;
 
-        await this.erc20Token.transfer(crowdSaleContract.address, tokenSupply)
+        // let erc20totalAmount = await this.erc20Token.balanceOf(erc20Owner.address)
+        await this.erc20Token.transfer(crowdSaleContract.address, 10000 , { from: erc20Owner.address })
     })
 
     describe("unspecified test", () => {
@@ -101,14 +103,14 @@ describe("crownSale test", () =>{
             it("erc1363 check", async () => {
                 let tx = await this.Doctoken.balanceOf(tokenOwner.address)
                 let tx2 = await this.Doctoken.balanceOf(crowdSaleContract.address)
-                console.log("erc1363(tokenOwner) :", tx.words[0])
-                console.log("erc1363(crowdSaleContract) :", tx2.words[0])
+                expect(tx.words[0]).to.be.equal(10000)
+                expect(tx2.words[0]).to.be.equal(0)
             })
             it("erc20 check", async () => {
                 let tx = await this.erc20Token.balanceOf(tokenOwner.address)
                 let tx2 = await this.erc20Token.balanceOf(crowdSaleContract.address)
-                console.log("erc20(tokenOwner) :", tx.words[0])
-                console.log("erc20(crowdSaleContract) :", tx2.words[0])
+                expect(tx.words[0]).to.be.equal(0)
+                expect(tx2.words[0]).to.be.equal(10000)
             })
         })
 
@@ -120,15 +122,49 @@ describe("crownSale test", () =>{
             describe("without data", () => {
                 it("approveAndCall test", async () => {
                     await this.Doctoken.approveAndCall(crowdSaleContract.address, 100, { from: tokenOwner.address })
-                    let tx = await this.Doctoken.balanceOf(tokenOwner.address)
-                    let tx2 = await this.Doctoken.balanceOf(crowdSaleContract.address)
-                    console.log("erc1363(tokenOwner) :", tx.words[0])
-                    console.log("erc1363(crowdSaleContract) :", tx2.words[0])
-                    let tx3 = await this.erc20Token.balanceOf(tokenOwner.address)
-                    let tx4 = await this.erc20Token.balanceOf(crowdSaleContract.address)
-                    console.log("erc20(tokenOwner) :", tx3.words[0])
-                    console.log("erc20(crowdSaleContract) :", tx4.words[0])
+                    let tx = await this.Doctoken.balanceOf(crownOwner.address)
+                    let tx2 = await this.erc20Token.balanceOf(tokenOwner.address)
+
+                    expect(tx.words[0]).to.be.equal(100)
+                    expect(tx2.words[0]).to.be.equal(100)
                 })
+
+                it("log test", async () => {
+                    const receipt = await this.Doctoken.approveAndCall(
+                        crowdSaleContract.address, 
+                        100, 
+                        { from: tokenOwner.address }
+                    )
+
+                    await expectEvent.inTransaction(receipt.tx, Crowdsale, 'TokensPurchased', {
+                        operator: tokenOwner.address,
+                        beneficiary: tokenOwner.address,
+                        value: '100',
+                        amount: '100',
+                    });
+                })
+            })
+
+            describe("with data", () => {
+                it("approveAndCall test", async () => {
+                    await approveAndCallWithData.call(this, crowdSaleContract.address, 100, { from: tokenOwner.address });
+                    let tx = await this.Doctoken.balanceOf(crownOwner.address)
+                    let tx2 = await this.erc20Token.balanceOf(tokenOwner.address)
+
+                    expect(tx.words[0]).to.be.equal(300)
+                    expect(tx2.words[0]).to.be.equal(300)
+                })
+
+                it('should log purchase', async () => {
+                    const receipt = await approveAndCallWithData.call(this, crowdSaleContract.address, 100, { from: tokenOwner.address });
+        
+                    await expectEvent.inTransaction(receipt.tx, Crowdsale, 'TokensPurchased', {
+                        operator: tokenOwner.address,
+                        beneficiary: tokenOwner.address,
+                        value: '100',
+                        amount: '100',
+                    });
+                });
             })
         })
     })
