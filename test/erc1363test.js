@@ -8,7 +8,7 @@ const ERC1363Spender = artifacts.require('ERC1363SpenderMock');
 
 const autoToken = artifacts.require('AutoTokens');
 
-describe("erc1363 test", () =>{
+describe("token test", () =>{
     const name = "DocToken";
     const symbol = "DOC";
 

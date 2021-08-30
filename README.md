@@ -20,7 +20,12 @@ npm run hardhat:factory
 ## approveAndCall, transferAndCall 테스트
 
 ```
-npm run hardhat:erc1363
+npm run hardhat:tokenSimple
 ```
 
+## crownSale을 통한 approveAndCall 테스트
+
+```
+npm run hardhat:Sale
+```
 

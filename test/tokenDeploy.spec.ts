@@ -15,7 +15,6 @@ describe("token deploy", () => {
 
     let factoryOwner: any
     let tokenOwner: any
-    let mockTokenOwner: any
 
     let factory: any
     let tokenFactory: any
@@ -23,7 +22,6 @@ describe("token deploy", () => {
     let tokenContractAddress: any
     let prov: any
     let docToken: any
-    let mockToken: any
 
     let account1 : any
     let account2 : any
@@ -34,19 +32,12 @@ describe("token deploy", () => {
     let walletPrivateKey : any
 
     before(async () => {
-        [ factoryOwner, tokenOwner, mockTokenOwner, account1, account2, account3 ] = await ethers.getSigners();
+        [ factoryOwner, tokenOwner, account1, account2, account3 ] = await ethers.getSigners();
         tokenFactory = await ethers.getContractFactory("ERC20TokenFactory");
         // console.log(tokenFactory)
         prov = ethers.getDefaultProvider();
 
         factory = await tokenFactory.deploy(factoryOwner.address);
-
-        ERC20Factory = await ethers.getContractFactory("ERC20Mock");
-
-        mockToken = await ERC20Factory.connect(mockTokenOwner).deploy("MOCK", "MOC");
-
-        let erc20balance = await mockToken.balanceOf(mockTokenOwner.address)
-        console.log(erc20balance.toString())
 
         // walletMnemonic = ethers.Wallet.fromMnemonic(mnemonic)
 
@@ -212,6 +203,9 @@ describe("token deploy", () => {
                 describe("token permit test", () => {
                     it("permit check", async () => {
                         let amount = 100
+
+                        let tx = await docToken.allowance(tokenOwner.address, account1.address)
+                        expect(tx).to.be.equal(0)
     
                         const nonce = parseInt(await docToken.nonces(tokenOwner.address))
                         const deadline = MaxUint256
@@ -251,9 +245,9 @@ describe("token deploy", () => {
                             signature.s
                         );
                         
-                        let tx = await docToken.allowance(tokenOwner.address, account1.address)
+                        let tx2 = await docToken.allowance(tokenOwner.address, account1.address)
     
-                        expect(tx).to.be.equal(100)
+                        expect(tx2).to.be.equal(100)
                     })
     
                     it("transferFrom check after permit", async () => {

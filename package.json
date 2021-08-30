@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "hardhat:factory": "hardhat test test/tokenDeploy.spec.ts",
-    "hardhat:erc1363": "hardhat test test/erc1363test.js"
+    "hardhat:tokenSimple": "hardhat test test/erc1363test.js",
+    "hardhat:Sale": "hardhat test test/crownSaleTest.js"
   },
   "keywords": [],
   "author": "",
