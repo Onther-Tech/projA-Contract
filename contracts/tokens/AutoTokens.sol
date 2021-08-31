@@ -44,9 +44,9 @@ contract AutoTokens is ERC1363, AccessiblePlusCommon {
         _setRoleAdmin(BURNER_ROLE, ADMIN_ROLE);
         _setRoleAdmin(MINTER_ROLE, ADMIN_ROLE);
 
-        _setupRole(ADMIN_ROLE, msg.sender);
-        _setupRole(BURNER_ROLE, msg.sender);
-        _setupRole(MINTER_ROLE, msg.sender);
+        _setupRole(ADMIN_ROLE, _owner);
+        _setupRole(BURNER_ROLE, _owner);
+        _setupRole(MINTER_ROLE, _owner);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1363, AccessControl) returns (bool) {

@@ -37,7 +37,7 @@ describe("token deploy", () => {
         // console.log(tokenFactory)
         prov = ethers.getDefaultProvider();
 
-        factory = await tokenFactory.deploy(factoryOwner.address);
+        factory = await tokenFactory.deploy();
 
         // walletMnemonic = ethers.Wallet.fromMnemonic(mnemonic)
 
@@ -52,14 +52,8 @@ describe("token deploy", () => {
     })
 
     describe('tokenFactory test', () => {
-        describe('token create test', () => {
-            it("creatToken not factoryOwner", async () => {
-                let tx = factory.connect(tokenOwner).create("DocToken", "DOC", tokenSupply, tokenOwner.address)
-    
-                await expect(tx).to.be.revertedWith("your not tokenFactoryOwner")
-            })
-    
-            it("creatToken is factoryOwner", async () => {
+        describe('token create test', () => {    
+            it("creatToken using factory", async () => {
                 let tx = await factory.connect(factoryOwner).create("DocToken", "DOC", tokenSupply, tokenOwner.address)
                 const receipt = await tx.wait();
     
