@@ -21,6 +21,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 inputTime;
         uint256 startTime;
         uint256 endTime;
+        uint256 monthlyReward;
     }
 
     struct UserInfoClaim {
@@ -69,10 +70,30 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         return endTime;
     }
     
-    function calculClaimAmount(uint256 _nowtime, uint256 _starttime, uint256 _preclaimamount) internal view returns (uint256) {
+    function calculClaimAmount(
+        uint256 _nowtime, 
+        uint256 _starttime, 
+        uint256 _preclaimamount,
+        uint256 _monthlyReward,
+        uint256 _usertotaloutput
+    ) internal pure returns (uint256) {
+        uint difftime = _nowtime - _starttime;
+        uint monthTime = 30 days;
 
-
-
+        if (difftime < monthTime) {
+            uint period = 1;
+            uint256 reward = _monthlyReward.mul(period).sub(_preclaimamount);
+            return reward;
+        } else {
+            uint period = difftime.div(monthTime).add(1);
+            if (period >= 12) {
+                uint256 reward = _usertotaloutput.sub(_preclaimamount);
+                return reward; 
+            } else {
+                uint256 reward = _monthlyReward.mul(period).sub(_preclaimamount);
+                return reward;
+            }
+        }
     }
 
     function buy(
@@ -105,6 +126,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
         user.inputamount = user.inputamount.add(_amount);
         user.totaloutputamount = user.totaloutputamount.add(giveTokenAmount);
+        user.monthlyReward = user.totaloutputamount.div(12);
         user.inputTime = block.timestamp;
         user.startTime = startTimeCalcul(block.timestamp);
         user.endTime = endTimeCalcul(user.startTime);
@@ -119,9 +141,9 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         require(user.inputamount > 0, "need to buy the token");
         require(block.timestamp >= user.startTime, "need the time for claim");
 
-        uint256 giveTokenAmount = calculClaimAmount(block.timestamp, user.startTime, userclaim.claimAmount);
+        uint256 giveTokenAmount = calculClaimAmount(block.timestamp, user.startTime, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount);
     
-        require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "");
+        require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "already getAllreward");
 
         userclaim.claimAmount = userclaim.claimAmount + giveTokenAmount;
         saleToken.transfer(msg.sender, giveTokenAmount);
