@@ -5,6 +5,7 @@ require('solidity-coverage');
 
 //typescript test need
 require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-ethers");
 
 
 /**

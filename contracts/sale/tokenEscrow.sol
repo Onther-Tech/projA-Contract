@@ -56,16 +56,16 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         saleToken = IERC20(_saleToken);
     }
 
-    function calculrate(uint256 _amount) internal view returns (uint256){
+    function calculrate(uint256 _amount) public view returns (uint256){
         return rate.mul(_amount);
     }
 
-    function startTimeCalcul(uint256 _time) internal pure returns (uint256) {
+    function startTimeCalcul(uint256 _time) public pure returns (uint256) {
         uint256 startTime = _time + 180 days;
         return startTime;
     }
 
-    function endTimeCalcul(uint256 _time) internal pure returns (uint256) {
+    function endTimeCalcul(uint256 _time) public pure returns (uint256) {
         uint256 endTime = _time + 360 days;
         return endTime;
     }
@@ -76,7 +76,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 _preclaimamount,
         uint256 _monthlyReward,
         uint256 _usertotaloutput
-    ) internal pure returns (uint256) {
+    ) public pure returns (uint256) {
         uint difftime = _nowtime - _starttime;
         uint monthTime = 30 days;
 
