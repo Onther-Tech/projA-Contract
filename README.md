@@ -29,3 +29,9 @@ npm run hardhat:tokenSimple
 npm run hardhat:Sale
 ```
 
+
+## privateSale 테스트
+
+```
+npm run hardhat:privateSale
+```
