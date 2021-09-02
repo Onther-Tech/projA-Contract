@@ -148,6 +148,9 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
         userclaim.claimAmount = userclaim.claimAmount + giveTokenAmount;
         userclaim.claimTime = block.timestamp;
+
+        require( saleToken.balanceOf(address(this)) < giveTokenAmount, "don't have saleToken in pool");
+
         saleToken.safeTransfer(msg.sender, giveTokenAmount);
     }
 
