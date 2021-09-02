@@ -28,6 +28,27 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 claimTime;
         uint256 claimAmount;
     }
+
+    event Buyinfo(
+        address user,
+        uint256 inputAmount,
+        uint256 totalOutPutamount,
+        uint256 inputTime,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 monthlyReward
+    );
+
+    event Claiminfo(
+        address user,
+        uint256 claimAmount,
+        uint256 claimTime
+    );
+
+    event Withdrawinfo(
+        address user,
+        uint256 withdrawAmount
+    );
     
     uint256 rate;
 
@@ -96,6 +117,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         }
     }
 
+
     function buy(
         uint256 _amount
     )
@@ -132,6 +154,16 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         user.endTime = endTimeCalcul(user.startTime);
 
         totalgetAmount = totalgetAmount.add(_amount);
+
+        emit Buyinfo(
+            msg.sender, 
+            user.inputamount, 
+            user.totaloutputamount,
+            user.inputTime,
+            user.startTime,
+            user.endTime,
+            user.monthlyReward
+        );
     }
 
     function claim() external {
@@ -152,6 +184,8 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
 
         saleToken.safeTransfer(msg.sender, giveTokenAmount);
+
+        emit Claiminfo(msg.sender, userclaim.claimAmount, userclaim.claimTime);
     }
 
 
@@ -161,6 +195,8 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
             "don't have token amount"
         );
         saleToken.safeTransfer(msg.sender, _amount);
+
+        emit Withdrawinfo(msg.sender, _amount);
     }
 
 }
