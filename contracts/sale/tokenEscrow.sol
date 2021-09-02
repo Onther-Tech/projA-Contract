@@ -77,7 +77,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 _monthlyReward,
         uint256 _usertotaloutput
     ) public pure returns (uint256) {
-        uint difftime = _nowtime - _starttime;
+        uint difftime = _nowtime.sub(_starttime);
         uint monthTime = 30 days;
 
         if (difftime < monthTime) {
@@ -140,13 +140,15 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
         require(user.inputamount > 0, "need to buy the token");
         require(block.timestamp >= user.startTime, "need the time for claim");
+        require(!(user.totaloutputamount == userclaim.claimAmount), "already getAllreward");
 
         uint256 giveTokenAmount = calculClaimAmount(block.timestamp, user.startTime, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount);
     
-        require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "already getAllreward");
+        require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "user is already getAllreward");
 
         userclaim.claimAmount = userclaim.claimAmount + giveTokenAmount;
-        saleToken.transfer(msg.sender, giveTokenAmount);
+        userclaim.claimTime = block.timestamp;
+        saleToken.safeTransfer(msg.sender, giveTokenAmount);
     }
 
 
@@ -155,7 +157,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
             saleToken.balanceOf(address(this)) >= _amount,
             "don't have token amount"
         );
-        saleToken.transfer(msg.sender, _amount);
+        saleToken.safeTransfer(msg.sender, _amount);
     }
 
 }
