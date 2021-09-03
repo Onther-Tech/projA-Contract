@@ -46,7 +46,22 @@ describe("token deploy", () => {
     let account4 : any
 
     let buyNowTime : any
+    let buyInputTime : any
     let buyStartTime : any
+    let buyEndTime : any
+
+    let buyInputTime2 : any
+    let buyStartTime2 : any
+    let buyEndTime2 : any
+
+    let buyInputTime3 : any
+    let buyStartTime3 : any
+    let buyEndTime3 : any
+
+    let nowTime: any
+    let claimTime1: any
+    let claimTime2: any
+    let claimTime3: any
 
     //doc가격 10원, ton가격 10000원 1000배차이 -> ton 1 = doc 1000
     //TON 1200개 넣으면 1200000개 DOC 얻음 -> 한달에 100000 개씩
@@ -106,7 +121,7 @@ describe("token deploy", () => {
                 expect(diffTime2).to.be.equal(timeCheck2)
             })
 
-            it('account1, account2, account3 buy', async () => {
+            it('account1, account2, account3 buy & event', async () => {
                 await tonToken.connect(account1).approve(escrow.address, baiscTonBalance1)
                 await tonToken.connect(account2).approve(escrow.address, baiscTonBalance2)
                 await tonToken.connect(account3).approve(escrow.address, baiscTonBalance3)
@@ -117,10 +132,52 @@ describe("token deploy", () => {
                 let tx4 = await tonToken.balanceOf(escrowOwner.address)
 
                 buyNowTime = Number(await time.latest());
-                buyStartTime = Number(await escrow.startTimeCalcul(buyNowTime))
-                await escrow.connect(account1).buy(baiscTonBalance1)
-                await escrow.connect(account2).buy(baiscTonBalance2)
-                await escrow.connect(account3).buy(baiscTonBalance3)
+                buyInputTime = (buyNowTime + 1).toString();
+                buyStartTime = Number(await escrow.startTimeCalcul(buyInputTime))
+                buyEndTime = Number(await escrow.endTimeCalcul(buyStartTime))
+
+                buyInputTime2 = (buyNowTime + 2).toString();
+                buyStartTime2 = Number(await escrow.startTimeCalcul(buyInputTime2))
+                buyEndTime2 = Number(await escrow.endTimeCalcul(buyStartTime2))
+
+                buyInputTime3 = (buyNowTime + 3).toString();
+                buyStartTime3 = Number(await escrow.startTimeCalcul(buyInputTime3))
+                buyEndTime3 = Number(await escrow.endTimeCalcul(buyStartTime3))
+
+                let buy1 = await escrow.connect(account1).buy(baiscTonBalance1)
+                let buy2 = await escrow.connect(account2).buy(baiscTonBalance2)
+                let buy3 = await escrow.connect(account3).buy(baiscTonBalance3)
+
+                await expect(buy1).to.emit(escrow, 'Buyinfo').withArgs(
+                    account1.address, 
+                    baiscTonBalance1, 
+                    acc1TotalReward, 
+                    buyInputTime,
+                    buyStartTime,
+                    buyEndTime,
+                    acc1MonthReward
+                )
+
+                await expect(buy2).to.emit(escrow, 'Buyinfo').withArgs(
+                    account2.address, 
+                    baiscTonBalance2, 
+                    acc2TotalReward, 
+                    buyInputTime2,
+                    buyStartTime2,
+                    buyEndTime2,
+                    acc2MonthReward
+                )
+
+                await expect(buy3).to.emit(escrow, 'Buyinfo').withArgs(
+                    account3.address, 
+                    baiscTonBalance3, 
+                    acc3TotalReward, 
+                    buyInputTime3,
+                    buyStartTime3,
+                    buyEndTime3,
+                    acc3MonthReward
+                )
+
 
                 let tx5 = await tonToken.balanceOf(account1.address)
                 let tx6 = await tonToken.balanceOf(account2.address)
@@ -140,7 +197,7 @@ describe("token deploy", () => {
             })
 
         })
-        describe("claim test", () => {
+        describe("claim & event test", () => {
             it('balance Check', async () => {
                 let tx = await docToken.balanceOf(account1.address)
                 expect(tx.toString()).to.be.equal('0')
@@ -173,20 +230,35 @@ describe("token deploy", () => {
 
             it('claim After 6 months of buy', async () => {
                 await time.increase(time.duration.days(181));
-                await escrow.connect(account1).claim();
-                await escrow.connect(account2).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
+                let claim2 = await escrow.connect(account2).claim();
+
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1MonthReward)
+                
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1MonthReward,
+                    nowTime
+                )
 
                 let tx2 = Number(await docToken.balanceOf(account2.address))
                 expect(tx2).to.be.equal(acc2MonthReward)
+
+                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                    account2.address, 
+                    acc2MonthReward,
+                    nowTime+1
+                )
             })
 
             it('claim After 7 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
-                await escrow.connect(account3).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
+                let claim2 = await escrow.connect(account3).claim();
                 let period = 2
                 let acc1Reward = acc1MonthReward * period
                 let acc3Reward = acc3MonthReward * period
@@ -194,49 +266,91 @@ describe("token deploy", () => {
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
 
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
+
                 let tx2 = Number(await docToken.balanceOf(account3.address))
                 expect(tx2).to.be.equal(acc3Reward)
+
+                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                    account3.address, 
+                    acc3Reward,
+                    nowTime+1
+                )
             })
 
             it('claim After 8 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
-                await escrow.connect(account2).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
+                let claim2 = await escrow.connect(account2).claim();
                 let period = 3
                 let acc1Reward = acc1MonthReward * period
                 let acc2Reward = acc2MonthReward * period
 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
+
                 let tx2 = Number(await docToken.balanceOf(account2.address))
                 expect(tx2).to.be.equal(acc2Reward)
+
+                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                    account2.address, 
+                    acc2Reward,
+                    nowTime+1
+                )
             })
 
             it('claim After 9 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
                 let period = 4
                 let acc1Reward = acc1MonthReward * period
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
             })
 
             it('claim After 10 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
                 let period = 5
                 let acc1Reward = acc1MonthReward * period
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
             })
 
             it('claim After 11 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
-                await escrow.connect(account2).claim();
-                await escrow.connect(account3).claim();
+                nowTime = Number(await time.latest())+1;
+
+                let claim1 = await escrow.connect(account1).claim();
+                let claim2 = await escrow.connect(account2).claim();
+                let claim3 = await escrow.connect(account3).claim();
                 
                 let period = 6
                 let acc1Reward = acc1MonthReward * period
@@ -245,46 +359,88 @@ describe("token deploy", () => {
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
+                
                 let tx2 = Number(await docToken.balanceOf(account2.address))
                 expect(tx2).to.be.equal(acc2Reward)
+
+                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                    account2.address, 
+                    acc2Reward,
+                    nowTime+1
+                )
+
                 let tx3 = Number(await docToken.balanceOf(account3.address))
                 expect(tx3).to.be.equal(acc3Reward)
+
+                await expect(claim3).to.emit(escrow, 'Claiminfo').withArgs(
+                    account3.address, 
+                    acc3Reward,
+                    nowTime+2
+                )
             })
 
             it('claim After 12 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
+                nowTime = Number(await time.latest())+1; 
+                let claim1 = await escrow.connect(account1).claim();
                 let period = 7
                 let acc1Reward = acc1MonthReward * period
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
             })
 
             it('claim After 13 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
                 let period = 8
                 let acc1Reward = acc1MonthReward * period
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
             })
 
             it('claim After 14 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
                 let period = 9
                 let acc1Reward = acc1MonthReward * period
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
             })
 
             it('claim After 15 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
-                await escrow.connect(account2).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
+                let claim2 = await escrow.connect(account2).claim();
 
                 let period = 10
                 let acc1Reward = acc1MonthReward * period
@@ -292,14 +448,28 @@ describe("token deploy", () => {
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
+
                 let tx2 = Number(await docToken.balanceOf(account2.address))
                 expect(tx2).to.be.equal(acc2Reward)
+
+                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                    account2.address, 
+                    acc2Reward,
+                    nowTime+1
+                )
             })
 
             it('claim After 16 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
-                await escrow.connect(account3).claim();
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account1).claim();
+                let claim2 = await escrow.connect(account3).claim();
 
                 let period = 11
                 let acc1Reward = acc1MonthReward * period
@@ -307,36 +477,76 @@ describe("token deploy", () => {
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1Reward,
+                    nowTime
+                )
+
                 let tx2 = Number(await docToken.balanceOf(account3.address))
                 expect(tx2).to.be.equal(acc3Reward)
+
+                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                    account3.address, 
+                    acc3Reward,
+                    nowTime+1
+                )
             })
 
             it('claim After 17 months of buy', async () => {
                 await time.increase(time.duration.days(30));
-                await escrow.connect(account1).claim();
+                nowTime = Number(await time.latest())+1;
+
+                let claim1 = await escrow.connect(account1).claim();
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1TotalReward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account1.address, 
+                    acc1TotalReward,
+                    nowTime
+                )
             })
 
             it('claim After 18 months of buy', async () => {
                 await time.increase(time.duration.days(30));
+                
                 let tx = escrow.connect(account1).claim();                
                 await expect(tx).to.be.revertedWith("already getAllreward")
+                
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account2).claim();           
 
-                await escrow.connect(account2).claim();                
                 let tx2 = Number(await docToken.balanceOf(account2.address))
                 expect(tx2).to.be.equal(acc2TotalReward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account2.address, 
+                    acc2TotalReward,
+                    nowTime
+                )
+                
             })
 
             it('claim After 19 months of buy', async () => {
                 await time.increase(time.duration.days(30));
+                
                 let tx = escrow.connect(account2).claim();                
                 await expect(tx).to.be.revertedWith("already getAllreward")
+                
+                nowTime = Number(await time.latest())+1;
+                let claim1 = await escrow.connect(account3).claim(); 
 
-                await escrow.connect(account3).claim();                
                 let tx2 = Number(await docToken.balanceOf(account3.address))
                 expect(tx2).to.be.equal(acc3TotalReward)
+
+                await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
+                    account3.address, 
+                    acc3TotalReward,
+                    nowTime
+                )
             })
 
             it('claim After 20 months of buy', async () => {
