@@ -24,9 +24,19 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 claimAmount;
     }
 
-    struct WriteList {
+    struct WhiteList {
         uint256 amount;
     }
+
+    event addList(
+        address account,
+        uint256 amount
+    );
+
+    event delList(
+        address account,
+        uint256 amount
+    );
 
     event Buyinfo(
         address user,
@@ -58,7 +68,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
     mapping (address => UserInfoAmount) public usersAmount;
     mapping (address => UserInfoClaim) public usersClaim;
-    mapping (address => WriteList) public usersWrite;
+    mapping (address => WhiteList) public usersWhite;
 
 
     constructor(address _saleTokenAddress, address _getTokenAddress, uint256 _rate) {
@@ -78,7 +88,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         saleToken = IERC20(_saleToken);
     }
 
-    function calculate(uint256 _amount) public view returns (uint256){
+    function calculate(uint256 _amount) internal view returns (uint256){
         return rate*_amount;
     }
 
@@ -91,6 +101,35 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 endTime = _time + 360 days;
         return endTime;
     }
+
+    function claimAmount(
+        address _account
+    ) external view returns (uint256) {
+        UserInfoAmount storage user = usersAmount[_account];
+
+        require(user.inputamount > 0, "user isn't buy");
+        require(block.timestamp > user.startTime, "need to time for claim");
+        
+        UserInfoClaim storage userclaim = usersClaim[msg.sender];
+
+        uint difftime = block.timestamp - user.startTime;
+        uint monthTime = 30 days;
+
+        if (difftime < monthTime) {
+            uint period = 1;
+            uint256 reward = (user.monthlyReward*period)-userclaim.claimAmount;
+            return reward;
+        } else {
+            uint period = (difftime/monthTime)+1;
+            if (period >= 12) {
+                uint256 reward = user.totaloutputamount-userclaim.claimAmount;
+                return reward; 
+            } else {
+                uint256 reward = (user.monthlyReward*period)-userclaim.claimAmount;
+                return reward;
+            }
+        }
+    }
     
     function calculClaimAmount(
         uint256 _nowtime, 
@@ -98,7 +137,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 _preclaimamount,
         uint256 _monthlyReward,
         uint256 _usertotaloutput
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         uint difftime = _nowtime-_starttime;
         uint monthTime = 30 days;
 
@@ -118,25 +157,27 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         }
     }
     
-    function addwritelist(
-        address _account,
-        uint256 _amount
-    ) 
-        external 
-        onlyOwner 
-    {
-        WriteList storage userwrite = usersWrite[_account];
-        userwrite.amount = userwrite.amount + _amount;
+    function addwhitelist(address _account,uint256 _amount) external onlyOwner {
+        WhiteList storage userwhite = usersWhite[_account];
+        userwhite.amount = userwhite.amount + _amount;
+
+        emit addList(_account, _amount);
     }
 
+    function delwhitelist(address _account, uint256 _amount) external onlyOwner {
+        WhiteList storage userwhite = usersWhite[_account];
+        userwhite.amount = userwhite.amount - _amount;
+
+        emit delList(_account, _amount);
+    }
 
     function buy(
         uint256 _amount
     ) external {
-        WriteList storage userwrite = usersWrite[msg.sender];
-        require(userwrite.amount >= _amount, "need the entering writeList");
+        WhiteList storage userwhite = usersWhite[msg.sender];
+        require(userwhite.amount >= _amount, "need the entering whiteList");
         _buy(_amount);
-        userwrite.amount = userwrite.amount - _amount;
+        userwhite.amount = userwhite.amount - _amount;
     }
 
     function _buy(

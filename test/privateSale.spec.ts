@@ -1,6 +1,4 @@
-
 import { BigNumber } from "@ethersproject/bignumber";
-import { PathArraySupportOption } from "prettier";
 const { time, BN } = require("@openzeppelin/test-helpers");
 
 const { AddressZero, MaxUint256 } = require("@ethersproject/constants");
@@ -111,20 +109,91 @@ describe("token deploy", () => {
 
             })
 
-            it('time function test', async () => {
-                let currentTime = Number(await time.latest());
-                let startTime = Number(await escrow.startTimeCalcul(currentTime))
-                let timeCheck = startTime-currentTime
-                let diffTime = oneday * 180
-                expect(diffTime).to.be.equal(timeCheck)
+            // it('time function test', async () => {
+            //     let currentTime = Number(await time.latest());
+            //     let startTime = Number(await escrow.startTimeCalcul(currentTime))
+            //     let timeCheck = startTime-currentTime
+            //     let diffTime = oneday * 180
+            //     expect(diffTime).to.be.equal(timeCheck)
 
-                let endTime = await escrow.endTimeCalcul(Number(startTime.toString()))
-                let timeCheck2 = Number(endTime.toString()) - Number(startTime.toString())
-                let diffTime2 = oneday * 360
-                expect(diffTime2).to.be.equal(timeCheck2)
+            //     let endTime = await escrow.endTimeCalcul(Number(startTime.toString()))
+            //     let timeCheck2 = Number(endTime.toString()) - Number(startTime.toString())
+            //     let diffTime2 = oneday * 360
+            //     expect(diffTime2).to.be.equal(timeCheck2)
+            // })
+
+            it('buy before addwhiteList', async () => {
+                let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
+                await expect(buy1).to.be.revertedWith("need the entering whiteList")
+                let buy2 = escrow.connect(account2).buy(baiscTonBalance2)
+                await expect(buy2).to.be.revertedWith("need the entering whiteList")
+                let buy3 = escrow.connect(account3).buy(baiscTonBalance3)
+                await expect(buy3).to.be.revertedWith("need the entering whiteList")
             })
 
-            it('account1, account2, account3 buy & event', async () => {
+            it('call addwhiteList dont owner', async () => {
+                let tx = escrow.connect(account1).addwhitelist(account1.address, baiscTonBalance1)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+                let tx2 = escrow.connect(account2).addwhitelist(account2.address, baiscTonBalance2)
+                await expect(tx2).to.be.revertedWith("Ownable: caller is not the owner")
+                let tx3 = escrow.connect(account3).addwhitelist(account3.address, baiscTonBalance3)
+                await expect(tx3).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('call addwhiteList owner', async () => {
+                let tx = await escrow.connect(escrowOwner).addwhitelist(account1.address, baiscTonBalance1)
+                
+                await expect(tx).to.emit(escrow, 'addList').withArgs(
+                    account1.address,
+                    baiscTonBalance1 
+                )
+
+                let tx2 = await escrow.connect(escrowOwner).addwhitelist(account2.address, baiscTonBalance2)
+
+                await expect(tx2).to.emit(escrow, 'addList').withArgs(
+                    account2.address,
+                    baiscTonBalance2 
+                )
+
+                let tx3 = await escrow.connect(escrowOwner).addwhitelist(account3.address, baiscTonBalance3)
+
+                await expect(tx3).to.emit(escrow, 'addList').withArgs(
+                    account3.address,
+                    baiscTonBalance3 
+                )
+            })
+
+            it('call delwhitelist dont owner', async () => {
+                let tx = escrow.connect(account1).delwhitelist(account1.address, baiscTonBalance1)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('call delwhitelist owner', async () => {
+                let tx = await escrow.connect(escrowOwner).delwhitelist(account1.address, baiscTonBalance1)
+                
+                await expect(tx).to.emit(escrow, 'delList').withArgs(
+                    account1.address,
+                    baiscTonBalance1 
+                )
+
+                let tx2 = await escrow.connect(escrowOwner).addwhitelist(account1.address, baiscTonBalance1)
+                
+                await expect(tx2).to.emit(escrow, 'addList').withArgs(
+                    account1.address,
+                    baiscTonBalance1 
+                )
+            })
+
+            it('buy before approve', async () => {
+                let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
+                await expect(buy1).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+                let buy2 = escrow.connect(account2).buy(baiscTonBalance2)
+                await expect(buy2).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+                let buy3 = escrow.connect(account3).buy(baiscTonBalance3)
+                await expect(buy3).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+            })
+
+            it('account1, account2, account3 approve & buy & event', async () => {
                 await tonToken.connect(account1).approve(escrow.address, baiscTonBalance1)
                 await tonToken.connect(account2).approve(escrow.address, baiscTonBalance2)
                 await tonToken.connect(account3).approve(escrow.address, baiscTonBalance3)
@@ -220,7 +289,7 @@ describe("token deploy", () => {
                 await expect(tx).to.be.revertedWith("need to buy the token")
             })
 
-            it('claim before 6 months of buy', async () => {
+            it('claim & claimAmount before 6 months of buy', async () => {
                 let tx = escrow.connect(account1).claim();
                 await expect(tx).to.be.revertedWith("need the time for claim")
                 
@@ -229,9 +298,15 @@ describe("token deploy", () => {
 
                 let tx3 = escrow.connect(account3).claim();
                 await expect(tx3).to.be.revertedWith("need the time for claim")
+
+                let tx4 = escrow.claimAmount(account1.address);
+                await expect(tx4).to.be.revertedWith("need to time for claim")
+                
+                let tx5 = escrow.claimAmount(account4.address);
+                await expect(tx5).to.be.revertedWith("user isn't buy")
             })
 
-            it('claim After 6 months of buy', async () => {
+            it('claim & claimAmount After 6 months of buy', async () => {
                 await time.increase(time.duration.days(181));
                 nowTime = Number(await time.latest())+1;
                 let claim1 = await escrow.connect(account1).claim();
@@ -239,16 +314,20 @@ describe("token deploy", () => {
 
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
+                let tx2 = Number(await escrow.claimAmount(account1.address))
                 expect(tx).to.be.equal(acc1MonthReward)
-                
+                expect(tx).to.be.equal(tx2)
+
                 await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
                     account1.address, 
                     acc1MonthReward,
                     nowTime
                 )
 
-                let tx2 = Number(await docToken.balanceOf(account2.address))
-                expect(tx2).to.be.equal(acc2MonthReward)
+                let tx3 = Number(await docToken.balanceOf(account2.address))
+                let tx4 = Number(await escrow.claimAmount(account2.address))
+                expect(tx3).to.be.equal(acc2MonthReward)
+                expect(tx4).to.be.equal(tx3)
 
                 await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
                     account2.address, 
@@ -556,6 +635,26 @@ describe("token deploy", () => {
                 await time.increase(time.duration.days(30));
                 let tx = escrow.connect(account3).claim();                
                 await expect(tx).to.be.revertedWith("already getAllreward")
+            })
+        })
+
+        describe("withdraw & event", () => {
+            it('not owner not withdraw', async () => {
+                let tx = Number(await docToken.balanceOf(escrow.address))
+                let tx2 = escrow.connect(account1).withdraw(tx)
+                await expect(tx2).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('owner can withdraw and event', async () => {
+                let tx = Number(await docToken.balanceOf(escrow.address))
+                let tx2 = await escrow.connect(escrowOwner).withdraw(tx)
+                let tx3 = Number(await docToken.balanceOf(escrowOwner.address))
+                expect(tx3).to.be.equal(tx)
+
+                await expect(tx2).to.emit(escrow, 'Withdrawinfo').withArgs(
+                    escrowOwner.address, 
+                    tx
+                )
             })
         })
     })
