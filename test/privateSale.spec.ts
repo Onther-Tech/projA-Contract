@@ -98,6 +98,7 @@ describe("token deploy", () => {
                 let tx5 = await docToken.balanceOf(account2.address)
                 let tx6 = await docToken.balanceOf(account3.address)
                 let tx7 = await docToken.balanceOf(escrow.address)
+                let tx8 = await tonToken.balanceOf(escrowOwner.address)
 
                 expect(tx.toString()).to.be.equal('1200')
                 expect(tx2.toString()).to.be.equal('1300')
@@ -106,6 +107,8 @@ describe("token deploy", () => {
                 expect(tx5.toString()).to.be.equal('0')
                 expect(tx6.toString()).to.be.equal('0')
                 expect(tx7.toString()).to.be.equal('100000000')
+                expect(tx8.toString()).to.be.equal('0')
+
             })
 
             it('time function test', async () => {

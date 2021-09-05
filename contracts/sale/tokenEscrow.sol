@@ -6,14 +6,9 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
-
 
 contract tokenEscrow is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
-
     
     struct UserInfoAmount {
         uint256 inputamount;
@@ -27,6 +22,10 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     struct UserInfoClaim {
         uint256 claimTime;
         uint256 claimAmount;
+    }
+
+    struct WriteList {
+        uint256 amount;
     }
 
     event Buyinfo(
@@ -59,6 +58,8 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
     mapping (address => UserInfoAmount) public usersAmount;
     mapping (address => UserInfoClaim) public usersClaim;
+    mapping (address => WriteList) public usersWrite;
+
 
     constructor(address _saleTokenAddress, address _getTokenAddress, uint256 _rate) {
         saleToken = IERC20(_saleTokenAddress);
@@ -77,8 +78,8 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         saleToken = IERC20(_saleToken);
     }
 
-    function calculrate(uint256 _amount) public view returns (uint256){
-        return rate.mul(_amount);
+    function calculate(uint256 _amount) public view returns (uint256){
+        return rate*_amount;
     }
 
     function startTimeCalcul(uint256 _time) public pure returns (uint256) {
@@ -98,32 +99,44 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 _monthlyReward,
         uint256 _usertotaloutput
     ) public pure returns (uint256) {
-        uint difftime = _nowtime.sub(_starttime);
+        uint difftime = _nowtime-_starttime;
         uint monthTime = 30 days;
 
         if (difftime < monthTime) {
             uint period = 1;
-            uint256 reward = _monthlyReward.mul(period).sub(_preclaimamount);
+            uint256 reward = (_monthlyReward*period)-_preclaimamount;
             return reward;
         } else {
-            uint period = difftime.div(monthTime).add(1);
+            uint period = (difftime/monthTime)+1;
             if (period >= 12) {
-                uint256 reward = _usertotaloutput.sub(_preclaimamount);
+                uint256 reward = _usertotaloutput-_preclaimamount;
                 return reward; 
             } else {
-                uint256 reward = _monthlyReward.mul(period).sub(_preclaimamount);
+                uint256 reward = (_monthlyReward*period)-_preclaimamount;
                 return reward;
             }
         }
+    }
+    
+    function addwritelist(
+        address _account,
+        uint256 _amount
+    ) 
+        external 
+        onlyOwner 
+    {
+        WriteList storage userwrite = usersWrite[_account];
+        userwrite.amount = userwrite.amount + _amount;
     }
 
 
     function buy(
         uint256 _amount
-    )
-        external
-    {
+    ) external {
+        WriteList storage userwrite = usersWrite[msg.sender];
+        require(userwrite.amount >= _amount, "need the entering writeList");
         _buy(_amount);
+        userwrite.amount = userwrite.amount - _amount;
     }
 
     function _buy(
@@ -133,7 +146,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     {
         UserInfoAmount storage user = usersAmount[msg.sender];
 
-        uint256 giveTokenAmount = calculrate(_amount);
+        uint256 giveTokenAmount = calculate(_amount);
         uint256 tokenBalance = saleToken.balanceOf(address(this));
 
         require(
@@ -144,16 +157,17 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 tokenAllowance = getToken.allowance(msg.sender, address(this));
         require(tokenAllowance >= _amount, "ERC20: transfer amount exceeds allowance");
 
-        getToken.safeTransferFrom(msg.sender, owner(), _amount);
+        getToken.safeTransferFrom(msg.sender, address(this), _amount);
+        getToken.safeTransfer(owner(), _amount);
 
-        user.inputamount = user.inputamount.add(_amount);
-        user.totaloutputamount = user.totaloutputamount.add(giveTokenAmount);
-        user.monthlyReward = user.totaloutputamount.div(12);
+        user.inputamount = user.inputamount+_amount;
+        user.totaloutputamount = user.totaloutputamount+giveTokenAmount;
+        user.monthlyReward = user.totaloutputamount/12;
         user.inputTime = block.timestamp;
         user.startTime = startTimeCalcul(block.timestamp);
         user.endTime = endTimeCalcul(user.startTime);
 
-        totalgetAmount = totalgetAmount.add(_amount);
+        totalgetAmount = totalgetAmount+_amount;
 
         emit Buyinfo(
             msg.sender, 
