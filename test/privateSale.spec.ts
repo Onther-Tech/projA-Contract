@@ -76,7 +76,7 @@ describe("token deploy", () => {
 
         deployEscrow = await ethers.getContractFactory("tokenEscrow");
         escrow = await deployEscrow.connect(escrowOwner).deploy(docToken.address, tonToken.address, 1000)
-
+        // console.log(escrow)
         await docToken.transfer(escrow.address, privateSaleAmount);
         await tonToken.connect(erc20Owner).transfer(account1.address, baiscTonBalance1)
         await tonToken.connect(erc20Owner).transfer(account2.address, baiscTonBalance2)
@@ -124,11 +124,11 @@ describe("token deploy", () => {
 
             it('buy before addwhiteList', async () => {
                 let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
-                await expect(buy1).to.be.revertedWith("need the entering whiteList")
+                await expect(buy1).to.be.revertedWith("need to add whiteList amount")
                 let buy2 = escrow.connect(account2).buy(baiscTonBalance2)
-                await expect(buy2).to.be.revertedWith("need the entering whiteList")
+                await expect(buy2).to.be.revertedWith("need to add whiteList amount")
                 let buy3 = escrow.connect(account3).buy(baiscTonBalance3)
-                await expect(buy3).to.be.revertedWith("need the entering whiteList")
+                await expect(buy3).to.be.revertedWith("need to add whiteList amount")
             })
 
             it('call addwhiteList dont owner', async () => {
@@ -203,6 +203,12 @@ describe("token deploy", () => {
                 let tx3 = await tonToken.balanceOf(account3.address)
                 let tx4 = await tonToken.balanceOf(escrowOwner.address)
 
+                let basicStartTime = Number(await escrow.startTime())
+                let basicEndTime = Number(await escrow.endTime())
+
+                expect(basicStartTime).to.be.equal(0)
+                expect(basicEndTime).to.be.equal(0)
+
                 buyNowTime = Number(await time.latest());
                 buyInputTime = (buyNowTime + 1).toString();
                 buyStartTime = Number(await escrow.startTimeCalcul(buyInputTime))
@@ -220,13 +226,17 @@ describe("token deploy", () => {
                 let buy2 = await escrow.connect(account2).buy(baiscTonBalance2)
                 let buy3 = await escrow.connect(account3).buy(baiscTonBalance3)
 
+                let afterStartTime = Number(await escrow.startTime())
+                let afterEndTime = Number(await escrow.endTime())
+
+                expect(afterStartTime).to.be.equal(buyStartTime)
+                expect(afterEndTime).to.be.equal(buyEndTime)
+
                 await expect(buy1).to.emit(escrow, 'Buyinfo').withArgs(
                     account1.address, 
                     baiscTonBalance1, 
                     acc1TotalReward, 
                     buyInputTime,
-                    buyStartTime,
-                    buyEndTime,
                     acc1MonthReward
                 )
 
@@ -235,8 +245,6 @@ describe("token deploy", () => {
                     baiscTonBalance2, 
                     acc2TotalReward, 
                     buyInputTime2,
-                    buyStartTime2,
-                    buyEndTime2,
                     acc2MonthReward
                 )
 
@@ -245,8 +253,6 @@ describe("token deploy", () => {
                     baiscTonBalance3, 
                     acc3TotalReward, 
                     buyInputTime3,
-                    buyStartTime3,
-                    buyEndTime3,
                     acc3MonthReward
                 )
 
@@ -267,6 +273,11 @@ describe("token deploy", () => {
                 expect(tx7.toString()).to.be.equal('0')
                 expect(tx8.toString()).to.be.equal('3600')
             })
+
+            it("buy after buy", async () => {
+                let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
+                await expect(buy1).to.be.revertedWith("need to add whiteList amount")
+            })  
 
         })
         describe("claim & event test", () => {
