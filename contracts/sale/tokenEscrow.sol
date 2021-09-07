@@ -95,14 +95,14 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         saleEndTime = _time;
     }
 
-    function settingClaimTime(uint256 _time) external onlyOwner {
+    function settingClaimTime(uint256 _time) external virtual onlyOwner {
         claimStartTime = _time;
         claimEndTime = _time + 360 days;
     }
 
     function claimAmount(
         address _account
-    ) external view returns (uint256) {
+    ) external virtual view returns (uint256) {
         UserInfoAmount storage user = usersAmount[_account];
 
         require(user.inputamount > 0, "user isn't buy");
@@ -134,7 +134,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 _preclaimamount,
         uint256 _monthlyReward,
         uint256 _usertotaloutput
-    ) internal view returns (uint256) {
+    ) internal virtual view returns (uint256) {
         uint difftime = _nowtime- claimStartTime;
         uint monthTime = 30 days;
 

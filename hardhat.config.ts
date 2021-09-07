@@ -2,6 +2,8 @@ require('chai/register-should');
 require('@nomiclabs/hardhat-ganache');
 require('@nomiclabs/hardhat-truffle5');
 require('solidity-coverage');
+require('dotenv/config');
+require('@nomiclabs/hardhat-etherscan')
 
 //typescript test need
 require("@nomiclabs/hardhat-waffle");
@@ -20,14 +22,14 @@ module.exports = {
       gas: 0xfffffffffff,
       gasPrice: 0x01,
     },
-    // rinkeby: {
-    //   url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    //   accounts: [ `${process.env.RINKEBY_PRIVATE_KEY}` ]
-    // }
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [ `${process.env.RINKEBY_PRIVATE_KEY}` ]
+    }
   },
-  // etherscan: {
-  //   apiKey: process.env.ETHERSCAN_API_KEY
-  // },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY
+  },
   solidity: {
     version: '0.8.0',
     settings: {
