@@ -26,6 +26,8 @@ describe("token deploy", () => {
     let acc2TotalReward = 1300000;
     let acc3TotalReward = 1100000;
 
+    let rate = 1000;
+
     let tokenOwner: any
     let erc20Owner: any
     let escrowOwner: any
@@ -75,7 +77,7 @@ describe("token deploy", () => {
         tonToken = await erc20token.connect(erc20Owner).deploy("testTON", "TON");
 
         deployEscrow = await ethers.getContractFactory("tokenEscrow");
-        escrow = await deployEscrow.connect(escrowOwner).deploy(docToken.address, tonToken.address, 1000)
+        escrow = await deployEscrow.connect(escrowOwner).deploy(docToken.address, tonToken.address)
         // console.log(escrow)
         await docToken.transfer(escrow.address, privateSaleAmount);
         await tonToken.connect(erc20Owner).transfer(account1.address, baiscTonBalance1)
@@ -109,18 +111,59 @@ describe("token deploy", () => {
 
             })
 
-            // it('time function test', async () => {
-            //     let currentTime = Number(await time.latest());
-            //     let startTime = Number(await escrow.startTimeCalcul(currentTime))
-            //     let timeCheck = startTime-currentTime
-            //     let diffTime = oneday * 180
-            //     expect(diffTime).to.be.equal(timeCheck)
+            it('buy before setting the rate', async () => {
+                let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
+                await expect(buy1).to.be.revertedWith("need to setting the rate")
+            })
 
-            //     let endTime = await escrow.endTimeCalcul(Number(startTime.toString()))
-            //     let timeCheck2 = Number(endTime.toString()) - Number(startTime.toString())
-            //     let diffTime2 = oneday * 360
-            //     expect(diffTime2).to.be.equal(timeCheck2)
-            // })
+            it('setting the rate caller is not owner', async () => {
+                let tx = escrow.connect(account1).rateChange(rate)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('setting the rate caller is owner', async () => {
+                await escrow.connect(escrowOwner).rateChange(rate)
+                let tx = await escrow.rate();
+                expect(tx).to.be.equal(rate)
+            })
+
+            it('buy before setting the saleStartTime && saleEndTime', async () => {
+                let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
+                await expect(buy1).to.be.revertedWith("need to setting saleTime")
+            })
+
+            it('setting the saleStartTime caller is not owner', async () => {
+                let blocktime = Number(await time.latest());
+                let tx = escrow.connect(account1).settingSaleStartTime(blocktime)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('setting the saleStartTime', async () => {
+                let blocktime = Number(await time.latest());
+                await escrow.connect(escrowOwner).settingSaleStartTime(blocktime)
+                let tx = await escrow.saleStartTime();
+                expect(tx).to.be.equal(blocktime)
+            })
+
+            it('buy after setting the saleStartTime before setting saleEndTime', async () => {
+                let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
+                await expect(buy1).to.be.revertedWith("need to setting saleTime")
+            })
+
+            it('setting the saleEndTime caller is not owner', async () => {
+                let blocktime = Number(await time.latest());
+                let endTime = blocktime + 86400
+                let tx = escrow.connect(account1).settingSaleEndTime(endTime)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('setting the saleEndTime', async () => {
+                let blocktime = Number(await time.latest());
+                let endTime = blocktime + 86400
+                await escrow.connect(escrowOwner).settingSaleEndTime(endTime)
+                let tx = await escrow.saleEndTime();
+                expect(tx).to.be.equal(endTime)
+            })
 
             it('buy before addwhiteList', async () => {
                 let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
@@ -183,7 +226,7 @@ describe("token deploy", () => {
                     baiscTonBalance1 
                 )
             })
-
+            
             it('buy before approve', async () => {
                 let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
                 await expect(buy1).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
@@ -203,34 +246,14 @@ describe("token deploy", () => {
                 let tx3 = await tonToken.balanceOf(account3.address)
                 let tx4 = await tonToken.balanceOf(escrowOwner.address)
 
-                let basicStartTime = Number(await escrow.startTime())
-                let basicEndTime = Number(await escrow.endTime())
-
-                expect(basicStartTime).to.be.equal(0)
-                expect(basicEndTime).to.be.equal(0)
-
                 buyNowTime = Number(await time.latest());
                 buyInputTime = (buyNowTime + 1).toString();
-                buyStartTime = Number(await escrow.startTimeCalcul(buyInputTime))
-                buyEndTime = Number(await escrow.endTimeCalcul(buyStartTime))
-
                 buyInputTime2 = (buyNowTime + 2).toString();
-                buyStartTime2 = Number(await escrow.startTimeCalcul(buyInputTime2))
-                buyEndTime2 = Number(await escrow.endTimeCalcul(buyStartTime2))
-
                 buyInputTime3 = (buyNowTime + 3).toString();
-                buyStartTime3 = Number(await escrow.startTimeCalcul(buyInputTime3))
-                buyEndTime3 = Number(await escrow.endTimeCalcul(buyStartTime3))
 
                 let buy1 = await escrow.connect(account1).buy(baiscTonBalance1)
                 let buy2 = await escrow.connect(account2).buy(baiscTonBalance2)
                 let buy3 = await escrow.connect(account3).buy(baiscTonBalance3)
-
-                let afterStartTime = Number(await escrow.startTime())
-                let afterEndTime = Number(await escrow.endTime())
-
-                expect(afterStartTime).to.be.equal(buyStartTime)
-                expect(afterEndTime).to.be.equal(buyEndTime)
 
                 await expect(buy1).to.emit(escrow, 'Buyinfo').withArgs(
                     account1.address, 
@@ -295,9 +318,27 @@ describe("token deploy", () => {
                 expect(tx4.toString()).to.be.equal('100000000')
             })
 
-            it("dont buy dont claim ", async () => {
+            it("dont buy dont claim", async () => {
                 let tx = escrow.connect(account4).claim();
                 await expect(tx).to.be.revertedWith("need to buy the token")
+            })
+
+            it("setting the claim time caller is not owner", async () => {
+                let blocktime = Number(await time.latest());
+                let claimTime = blocktime + 15552000
+                let tx = escrow.connect(account1).settingClaimTime(claimTime)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it("setting the claim time caller is owner", async () => {
+                let blocktime = Number(await time.latest());
+                let claimTime = blocktime + 15552000
+                let claimEndTime = claimTime + 31104000
+                await escrow.connect(escrowOwner).settingClaimTime(claimTime)
+                let tx = await escrow.claimStartTime()
+                await expect(tx).to.be.equal(claimTime)
+                let tx2 = await escrow.claimEndTime()
+                await expect(tx2).to.be.equal(claimEndTime)
             })
 
             it('claim & claimAmount before 6 months of buy', async () => {

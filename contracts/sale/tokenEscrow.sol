@@ -55,11 +55,14 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 withdrawAmount
     );
     
-    uint256 rate;
-    uint256 totalgetAmount;
+    uint256 public rate = 0;
+    uint256 public totalgetAmount;
 
-    uint256 public startTime = 0;
-    uint256 public endTime = 0;
+    uint256 public saleStartTime = 0;
+    uint256 public saleEndTime = 0;
+
+    uint256 public claimStartTime = 0;
+    uint256 public claimEndTime = 0;
 
     IERC20 public saleToken;
     IERC20 public getToken;
@@ -69,26 +72,32 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     mapping (address => WhiteList) public usersWhite;
 
 
-    constructor(address _saleTokenAddress, address _getTokenAddress, uint256 _rate) {
+    constructor(address _saleTokenAddress, address _getTokenAddress) {
         saleToken = IERC20(_saleTokenAddress);
         getToken = IERC20(_getTokenAddress);
-        rate = _rate;
-    }
-
-    function rateChange(uint256 _rate) external onlyOwner {
-        rate = _rate;
     }
 
     function calculate(uint256 _amount) internal view returns (uint256){
+        require(rate != 0, "need the setting rate");
         return rate*_amount;
     }
 
-    function startTimeCalcul(uint256 _time) public pure returns (uint256) {
-        return _time + 180 days;
+    function rateChange(uint256 _rate) external onlyOwner {
+        require(block.timestamp <= saleStartTime || saleStartTime == 0, "already start the sale");
+        rate = _rate;
     }
 
-    function endTimeCalcul(uint256 _time) public pure returns (uint256) {
-        return _time + 360 days;
+    function settingSaleStartTime(uint256 _time) external onlyOwner {
+        saleStartTime = _time;
+    }
+
+    function settingSaleEndTime(uint256 _time) external onlyOwner {
+        saleEndTime = _time;
+    }
+
+    function settingClaimTime(uint256 _time) external onlyOwner {
+        claimStartTime = _time;
+        claimEndTime = _time + 360 days;
     }
 
     function claimAmount(
@@ -97,11 +106,11 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         UserInfoAmount storage user = usersAmount[_account];
 
         require(user.inputamount > 0, "user isn't buy");
-        require(block.timestamp > startTime, "need to time for claim");
+        require(block.timestamp > claimStartTime, "need to time for claim");
         
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
-        uint difftime = block.timestamp - startTime;
+        uint difftime = block.timestamp - claimStartTime;
         uint monthTime = 30 days;
 
         if (difftime < monthTime) {
@@ -126,7 +135,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 _monthlyReward,
         uint256 _usertotaloutput
     ) internal view returns (uint256) {
-        uint difftime = _nowtime- startTime;
+        uint difftime = _nowtime- claimStartTime;
         uint monthTime = 30 days;
 
         if (difftime < monthTime) {
@@ -162,13 +171,15 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     function buy(
         uint256 _amount
     ) external {
+        require(rate != 0, "need to setting the rate");
+        require(saleStartTime != 0 && saleEndTime != 0, "need to setting saleTime");
+        require(block.timestamp >= saleStartTime && block.timestamp <= saleEndTime, "privaSale period end");
         WhiteList storage userwhite = usersWhite[msg.sender];
         require(userwhite.amount >= _amount, "need to add whiteList amount");
         _buy(_amount);
         userwhite.amount = userwhite.amount - _amount;
     }
 
-    //최초 실행 시 startTime, EndTime
     function _buy(
         uint256 _amount
     )
@@ -195,11 +206,6 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         user.monthlyReward = user.totaloutputamount/12;
         user.inputTime = block.timestamp;
 
-        if(startTime == 0) {
-            startTime = startTimeCalcul(block.timestamp);
-            endTime = endTimeCalcul(startTime);
-        }
-
         totalgetAmount = totalgetAmount+_amount;
 
         emit Buyinfo(
@@ -216,7 +222,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
         require(user.inputamount > 0, "need to buy the token");
-        require(block.timestamp >= startTime, "need the time for claim");
+        require(block.timestamp >= claimStartTime, "need the time for claim");
         require(!(user.totaloutputamount == userclaim.claimAmount), "already getAllreward");
 
         uint256 giveTokenAmount = calculClaimAmount(block.timestamp, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount);
