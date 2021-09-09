@@ -227,6 +227,21 @@ describe("token deploy", () => {
                     baiscTonBalance1 
                 )
             })
+
+            it('call chagneGetAddress not owner', async () => {
+                let tx = escrow.connect(account1).changeGetAddress(account1.address)
+                await expect(tx).to.be.revertedWith("Ownable: caller is not the owner")
+            })
+
+            it('call chagneGetAddress owner', async () => {
+                await escrow.connect(escrowOwner).changeGetAddress(account1.address)
+                let tx = await escrow.getTokenOwner();
+                expect(account1.address).to.be.equal(tx)
+
+                await escrow.connect(escrowOwner).changeGetAddress(getTONOnwer.address)
+                let tx2 = await escrow.getTokenOwner();
+                expect(getTONOnwer.address).to.be.equal(tx2)
+            })
             
             it('buy before approve', async () => {
                 let buy1 = escrow.connect(account1).buy(baiscTonBalance1)
