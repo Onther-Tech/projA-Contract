@@ -24,9 +24,13 @@ async function main() {
 
     //tokenEscrow deploy
     let tonAddress = "0x44d4F5d89E9296337b8c48a332B3b2fb2C190CD0"
+    // let docAddress2 = "0xb109f4c20bdb494a63e32aa035257fba0a4610a4"
+    
+    //세일로 받은 TON을 관리할 주소
+    let getTonOwner = "0x642C239C9BEF6574FE3dc64B82dED55A30d0dc25"
 
     const tokenEscrow = await ethers.getContractFactory('tokenEscrowMock')
-    const escrow = await tokenEscrow.deploy(docAddress, tonAddress)
+    const escrow = await tokenEscrow.deploy(docAddress, tonAddress, getTonOwner)
     await escrow.deployed()
     
     await escrow.connect(deployer).transferOwnership(ownerAddress)

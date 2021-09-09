@@ -9,8 +9,9 @@ contract tokenEscrowMock is tokenEscrow {
 
     constructor(
         address _saleTokenAddress, 
-        address _getTokenAddress
-    ) tokenEscrow(_saleTokenAddress, _getTokenAddress) {
+        address _getTokenAddress,
+        address _getTokenOwner
+    ) tokenEscrow(_saleTokenAddress, _getTokenAddress, _getTokenOwner) {
     }
 
     function settingClaimTime(uint256 _time) external override onlyOwner {

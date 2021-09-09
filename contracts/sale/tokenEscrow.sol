@@ -55,6 +55,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 withdrawAmount
     );
     
+    address public getTokenOwner;
     uint256 public rate = 0;
     uint256 public totalgetAmount;
 
@@ -72,9 +73,10 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     mapping (address => WhiteList) public usersWhite;
 
 
-    constructor(address _saleTokenAddress, address _getTokenAddress) {
+    constructor(address _saleTokenAddress, address _getTokenAddress, address _getTokenOwner) {
         saleToken = IERC20(_saleTokenAddress);
         getToken = IERC20(_getTokenAddress);
+        getTokenOwner = _getTokenOwner;
     }
 
     function calculate(uint256 _amount) internal view returns (uint256){
@@ -85,6 +87,10 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     function rateChange(uint256 _rate) external onlyOwner {
         require(block.timestamp <= saleStartTime || saleStartTime == 0, "already start the sale");
         rate = _rate;
+    }
+
+    function changeGetAddress(address _address) external onlyOwner {
+        getTokenOwner = _address;
     }
 
     function settingSaleStartTime(uint256 _time) external onlyOwner {
@@ -199,7 +205,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         require(tokenAllowance >= _amount, "ERC20: transfer amount exceeds allowance");
 
         getToken.safeTransferFrom(msg.sender, address(this), _amount);
-        getToken.safeTransfer(owner(), _amount);
+        getToken.safeTransfer(getTokenOwner, _amount);
 
         user.inputamount = user.inputamount+_amount;
         user.totaloutputamount = user.totaloutputamount+giveTokenAmount;
@@ -228,7 +234,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 giveTokenAmount = calculClaimAmount(block.timestamp, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount);
     
         require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "user is already getAllreward");
-        require( saleToken.balanceOf(address(this)) >= giveTokenAmount, "don't have saleToken in pool");
+        require( saleToken.balanceOf(address(this)) >= giveTokenAmount, "dont have saleToken in pool");
 
         userclaim.claimAmount = userclaim.claimAmount + giveTokenAmount;
         userclaim.claimTime = block.timestamp;
@@ -242,7 +248,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     function withdraw(uint256 _amount) external onlyOwner {
         require(
             saleToken.balanceOf(address(this)) >= _amount,
-            "don't have token amount"
+            "dont have token amount"
         );
         saleToken.safeTransfer(msg.sender, _amount);
 

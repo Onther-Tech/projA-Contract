@@ -39,6 +39,7 @@ describe("token deploy", () => {
     let tonToken: any
     let deployEscrow: any
     let escrow: any
+    let getTONOnwer: any
 
     let account1 : any
     let account2 : any
@@ -66,7 +67,7 @@ describe("token deploy", () => {
     //doc가격 10원, ton가격 10000원 1000배차이 -> ton 1 = doc 1000
     //TON 1200개 넣으면 1200000개 DOC 얻음 -> 한달에 100000 개씩
     before(async () => {
-        [ tokenOwner, erc20Owner, escrowOwner, account1, account2, account3, account4 ] = await ethers.getSigners();
+        [ tokenOwner, erc20Owner, escrowOwner, account1, account2, account3, account4, getTONOnwer ] = await ethers.getSigners();
         token = await ethers.getContractFactory("DOC");
         // console.log(tokenFactory)
         prov = ethers.getDefaultProvider();
@@ -77,7 +78,7 @@ describe("token deploy", () => {
         tonToken = await erc20token.connect(erc20Owner).deploy("testTON", "TON");
 
         deployEscrow = await ethers.getContractFactory("tokenEscrow");
-        escrow = await deployEscrow.connect(escrowOwner).deploy(docToken.address, tonToken.address)
+        escrow = await deployEscrow.connect(escrowOwner).deploy(docToken.address, tonToken.address, getTONOnwer.address)
         // console.log(escrow)
         await docToken.transfer(escrow.address, privateSaleAmount);
         await tonToken.connect(erc20Owner).transfer(account1.address, baiscTonBalance1)
@@ -98,7 +99,7 @@ describe("token deploy", () => {
                 let tx5 = await docToken.balanceOf(account2.address)
                 let tx6 = await docToken.balanceOf(account3.address)
                 let tx7 = await docToken.balanceOf(escrow.address)
-                let tx8 = await tonToken.balanceOf(escrowOwner.address)
+                let tx8 = await tonToken.balanceOf(getTONOnwer.address)
 
                 expect(tx.toString()).to.be.equal('1200')
                 expect(tx2.toString()).to.be.equal('1300')
@@ -244,7 +245,7 @@ describe("token deploy", () => {
                 let tx = await tonToken.balanceOf(account1.address)
                 let tx2 = await tonToken.balanceOf(account2.address)
                 let tx3 = await tonToken.balanceOf(account3.address)
-                let tx4 = await tonToken.balanceOf(escrowOwner.address)
+                let tx4 = await tonToken.balanceOf(getTONOnwer.address)
 
                 buyNowTime = Number(await time.latest());
                 buyInputTime = (buyNowTime + 1).toString();
@@ -283,7 +284,7 @@ describe("token deploy", () => {
                 let tx5 = await tonToken.balanceOf(account1.address)
                 let tx6 = await tonToken.balanceOf(account2.address)
                 let tx7 = await tonToken.balanceOf(account3.address)
-                let tx8 = await tonToken.balanceOf(escrowOwner.address)
+                let tx8 = await tonToken.balanceOf(getTONOnwer.address)
 
                 expect(tx.toString()).to.be.equal('1200')
                 expect(tx2.toString()).to.be.equal('1300')
