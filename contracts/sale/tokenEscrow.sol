@@ -81,7 +81,7 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
 
     function calculate(uint256 _amount) internal view returns (uint256){
         require(rate != 0, "need the setting rate");
-        return rate*_amount;
+        return rate*_amount/(1e6);
     }
 
     function rateChange(uint256 _rate) external onlyOwner {

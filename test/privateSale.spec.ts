@@ -15,18 +15,21 @@ describe("token deploy", () => {
     const baiscTonBalance1 = 1200;
     const baiscTonBalance2 = 1300;
     const baiscTonBalance3 = 1100;
+    const totalTonBalance = baiscTonBalance1 + baiscTonBalance2 + baiscTonBalance3;
 
     const oneday = 86400
-
-    let acc1MonthReward = 100000;
-    let acc2MonthReward = 108333;
-    let acc3MonthReward = 91666;
     
-    let acc1TotalReward = 1200000;
-    let acc2TotalReward = 1300000;
-    let acc3TotalReward = 1100000;
+    let rate = 917.5 * (1e6);
+    // let rate = 917.5;
+    let rate2 = rate / (1e6);
+    
+    let acc1TotalReward = baiscTonBalance1 * rate2;
+    let acc2TotalReward = baiscTonBalance2 * rate2;
+    let acc3TotalReward = baiscTonBalance3 * rate2;
 
-    let rate = 1000;
+    let acc1MonthReward = Math.floor(acc1TotalReward / 12);
+    let acc2MonthReward = Math.floor(acc2TotalReward / 12);
+    let acc3MonthReward = Math.floor(acc3TotalReward / 12);
 
     let tokenOwner: any
     let erc20Owner: any
@@ -92,18 +95,18 @@ describe("token deploy", () => {
     describe('privateSale test', () => {
         describe("buy test", () => {
             it('balance check', async () => {
-                let tx = await tonToken.balanceOf(account1.address)
-                let tx2 = await tonToken.balanceOf(account2.address)
-                let tx3 = await tonToken.balanceOf(account3.address)
+                let tx = Number(await tonToken.balanceOf(account1.address))
+                let tx2 = Number(await tonToken.balanceOf(account2.address))
+                let tx3 = Number(await tonToken.balanceOf(account3.address))
                 let tx4 = await docToken.balanceOf(account1.address)
                 let tx5 = await docToken.balanceOf(account2.address)
                 let tx6 = await docToken.balanceOf(account3.address)
                 let tx7 = await docToken.balanceOf(escrow.address)
                 let tx8 = await tonToken.balanceOf(getTONOnwer.address)
 
-                expect(tx.toString()).to.be.equal('1200')
-                expect(tx2.toString()).to.be.equal('1300')
-                expect(tx3.toString()).to.be.equal('1100')
+                expect(tx).to.be.equal(baiscTonBalance1)
+                expect(tx2).to.be.equal(baiscTonBalance2)
+                expect(tx3).to.be.equal(baiscTonBalance3)
                 expect(tx4.toString()).to.be.equal('0')
                 expect(tx5.toString()).to.be.equal('0')
                 expect(tx6.toString()).to.be.equal('0')
@@ -125,6 +128,7 @@ describe("token deploy", () => {
             it('setting the rate caller is owner', async () => {
                 await escrow.connect(escrowOwner).rateChange(rate)
                 let tx = await escrow.rate();
+                console.log(tx.toString())
                 expect(tx).to.be.equal(rate)
             })
 
@@ -257,9 +261,9 @@ describe("token deploy", () => {
                 await tonToken.connect(account2).approve(escrow.address, baiscTonBalance2)
                 await tonToken.connect(account3).approve(escrow.address, baiscTonBalance3)
 
-                let tx = await tonToken.balanceOf(account1.address)
-                let tx2 = await tonToken.balanceOf(account2.address)
-                let tx3 = await tonToken.balanceOf(account3.address)
+                let tx = Number(await tonToken.balanceOf(account1.address))
+                let tx2 = Number(await tonToken.balanceOf(account2.address))
+                let tx3 = Number(await tonToken.balanceOf(account3.address))
                 let tx4 = await tonToken.balanceOf(getTONOnwer.address)
 
                 buyNowTime = Number(await time.latest());
@@ -299,18 +303,18 @@ describe("token deploy", () => {
                 let tx5 = await tonToken.balanceOf(account1.address)
                 let tx6 = await tonToken.balanceOf(account2.address)
                 let tx7 = await tonToken.balanceOf(account3.address)
-                let tx8 = await tonToken.balanceOf(getTONOnwer.address)
+                let tx8 = Number(await tonToken.balanceOf(getTONOnwer.address))
 
-                expect(tx.toString()).to.be.equal('1200')
-                expect(tx2.toString()).to.be.equal('1300')
-                expect(tx3.toString()).to.be.equal('1100')
+                expect(tx).to.be.equal(baiscTonBalance1)
+                expect(tx2).to.be.equal(baiscTonBalance2)
+                expect(tx3).to.be.equal(baiscTonBalance3)
                 expect(tx4.toString()).to.be.equal('0')
 
                 //after buy
                 expect(tx5.toString()).to.be.equal('0')
                 expect(tx6.toString()).to.be.equal('0')
                 expect(tx7.toString()).to.be.equal('0')
-                expect(tx8.toString()).to.be.equal('3600')
+                expect(tx8).to.be.equal(totalTonBalance)
             })
 
             it("buy after buy", async () => {
@@ -383,23 +387,25 @@ describe("token deploy", () => {
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 let tx2 = Number(await escrow.claimAmount(account1.address))
-                expect(tx).to.be.equal(acc1MonthReward)
+                // let monthReward = Math.floor(acc1MonthReward/(1e6))*(1e6)
+                // expect(tx).to.be.equal(Math.floor(acc1MonthReward/(1e6)))
                 expect(tx).to.be.equal(tx2)
 
                 await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
                     account1.address, 
-                    acc1MonthReward,
+                    tx2,
                     nowTime
                 )
 
                 let tx3 = Number(await docToken.balanceOf(account2.address))
                 let tx4 = Number(await escrow.claimAmount(account2.address))
-                expect(tx3).to.be.equal(acc2MonthReward)
+                // let monthReward2 = Math.floor(acc2MonthReward/(1e6))*(1e6)
+                // expect(tx3).to.be.equal(Math.floor(acc2MonthReward/(1e6)))
                 expect(tx4).to.be.equal(tx3)
 
                 await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
                     account2.address, 
-                    acc2MonthReward,
+                    tx4,
                     nowTime+1
                 )
             })
@@ -410,10 +416,15 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account1).claim();
                 let claim2 = await escrow.connect(account3).claim();
                 let period = 2
-                let acc1Reward = acc1MonthReward * period
-                let acc3Reward = acc3MonthReward * period
-                
+                let acc1Reward = acc1MonthReward * period 
+                let acc3Reward = acc3MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let acc3Reward = Math.floor(acc3MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
+                // let monthReward3 = acc3Reward*(1e6)
+
                 let tx = Number(await docToken.balanceOf(account1.address))
+                // console.log(tx)
                 expect(tx).to.be.equal(acc1Reward)
 
                 await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
@@ -423,6 +434,7 @@ describe("token deploy", () => {
                 )
 
                 let tx2 = Number(await docToken.balanceOf(account3.address))
+                // console.log(tx2)
                 expect(tx2).to.be.equal(acc3Reward)
 
                 await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
@@ -439,7 +451,11 @@ describe("token deploy", () => {
                 let claim2 = await escrow.connect(account2).claim();
                 let period = 3
                 let acc1Reward = acc1MonthReward * period
-                let acc2Reward = acc2MonthReward * period
+                let acc2Reward = acc2MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let acc2Reward = Math.floor(acc2MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
+                // let monthReward2 = acc2Reward*(1e6)
 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -466,6 +482,8 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account1).claim();
                 let period = 4
                 let acc1Reward = acc1MonthReward * period
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -483,6 +501,8 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account1).claim();
                 let period = 5
                 let acc1Reward = acc1MonthReward * period
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -503,9 +523,15 @@ describe("token deploy", () => {
                 let claim3 = await escrow.connect(account3).claim();
                 
                 let period = 6
-                let acc1Reward = acc1MonthReward * period
-                let acc2Reward = acc2MonthReward * period
-                let acc3Reward = acc3MonthReward * period
+                let acc1Reward = acc1MonthReward * period 
+                let acc2Reward = acc2MonthReward * period 
+                let acc3Reward = acc3MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let acc2Reward = Math.floor(acc2MonthReward * period / (1e6))
+                // let acc3Reward = Math.floor(acc3MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
+                // let monthReward2 = acc2Reward*(1e6)
+                // let monthReward3 = acc3Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -541,6 +567,8 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account1).claim();
                 let period = 7
                 let acc1Reward = acc1MonthReward * period
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -557,7 +585,9 @@ describe("token deploy", () => {
                 nowTime = Number(await time.latest())+1;
                 let claim1 = await escrow.connect(account1).claim();
                 let period = 8
-                let acc1Reward = acc1MonthReward * period
+                let acc1Reward = acc1MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -574,7 +604,9 @@ describe("token deploy", () => {
                 nowTime = Number(await time.latest())+1;
                 let claim1 = await escrow.connect(account1).claim();
                 let period = 9
-                let acc1Reward = acc1MonthReward * period
+                let acc1Reward = acc1MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -593,8 +625,12 @@ describe("token deploy", () => {
                 let claim2 = await escrow.connect(account2).claim();
 
                 let period = 10
-                let acc1Reward = acc1MonthReward * period
-                let acc2Reward = acc2MonthReward * period
+                let acc1Reward = acc1MonthReward * period 
+                let acc2Reward = acc2MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let acc2Reward = Math.floor(acc2MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
+                // let monthReward2 = acc2Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -619,11 +655,15 @@ describe("token deploy", () => {
                 await time.increase(time.duration.days(30));
                 nowTime = Number(await time.latest())+1;
                 let claim1 = await escrow.connect(account1).claim();
-                let claim2 = await escrow.connect(account3).claim();
+                let claim3 = await escrow.connect(account3).claim();
 
                 let period = 11
                 let acc1Reward = acc1MonthReward * period
-                let acc3Reward = acc3MonthReward * period
+                let acc3Reward = acc3MonthReward * period 
+                // let acc1Reward = Math.floor(acc1MonthReward * period / (1e6))
+                // let acc3Reward = Math.floor(acc3MonthReward * period / (1e6))
+                // let monthReward1 = acc1Reward*(1e6)
+                // let monthReward3 = acc3Reward*(1e6)
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
                 expect(tx).to.be.equal(acc1Reward)
@@ -637,7 +677,7 @@ describe("token deploy", () => {
                 let tx2 = Number(await docToken.balanceOf(account3.address))
                 expect(tx2).to.be.equal(acc3Reward)
 
-                await expect(claim2).to.emit(escrow, 'Claiminfo').withArgs(
+                await expect(claim3).to.emit(escrow, 'Claiminfo').withArgs(
                     account3.address, 
                     acc3Reward,
                     nowTime+1
@@ -651,7 +691,9 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account1).claim();
                 
                 let tx = Number(await docToken.balanceOf(account1.address))
-                expect(tx).to.be.equal(acc1TotalReward)
+                let accReward1 = acc1TotalReward
+                // let accReward1 = acc1TotalReward / (1e6)
+                expect(tx).to.be.equal(accReward1)
 
                 await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
                     account1.address, 
@@ -670,7 +712,11 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account2).claim();           
 
                 let tx2 = Number(await docToken.balanceOf(account2.address))
-                expect(tx2).to.be.equal(acc2TotalReward)
+                let accReward2 = acc2TotalReward 
+                // let accReward2 = Math.floor(acc2TotalReward / (1e6))
+                // let accTotalReward2 = accReward2 * (1e6)
+
+                expect(tx2).to.be.equal(accReward2)
 
                 await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
                     account2.address, 
@@ -690,7 +736,11 @@ describe("token deploy", () => {
                 let claim1 = await escrow.connect(account3).claim(); 
 
                 let tx2 = Number(await docToken.balanceOf(account3.address))
-                expect(tx2).to.be.equal(acc3TotalReward)
+                let accReward3 = acc3TotalReward 
+                // let accReward3 = Math.floor(acc3TotalReward / (1e6))
+                // let accTotalReward3 = accReward3 * (1e6)
+
+                expect(tx2).to.be.equal(accReward3)
 
                 await expect(claim1).to.emit(escrow, 'Claiminfo').withArgs(
                     account3.address, 
