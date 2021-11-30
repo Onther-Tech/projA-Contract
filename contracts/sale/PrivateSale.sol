@@ -7,7 +7,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract tokenEscrow is Ownable, ReentrancyGuard {
+contract PrivateSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     
     struct UserInfoAmount {
@@ -15,11 +15,14 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 totaloutputamount;
         uint256 inputTime;
         uint256 monthlyReward;
+        uint256 firstReward;
     }
 
     struct UserInfoClaim {
         uint256 claimTime;
         uint256 claimAmount;
+        uint256 fistClaimAmount;
+        uint256 firstClaimTime;
     }
 
     struct WhiteList {
@@ -41,7 +44,14 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 inputAmount,
         uint256 totalOutPutamount,
         uint256 inputTime,
-        uint256 monthlyReward
+        uint256 monthlyReward,
+        uint256 firstReward
+    );
+
+    event FirstClaiminfo(
+        address user,
+        uint256 claimAmount,
+        uint256 claimTime
     );
 
     event Claiminfo(
@@ -55,66 +65,121 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         uint256 withdrawAmount
     );
     
-    address public getTokenOwner;
-    uint256 public rate = 0;
-    uint256 public totalgetAmount;
+    address public getTokenOwner;       //받은 ton을 받을 주소
+    uint256 public totalGetAmount;      //총 TON받은양
+    uint256 public totalSaleAmount;     //총 판매토큰
 
-    uint256 public saleStartTime = 0;
-    uint256 public saleEndTime = 0;
+    uint256 public saleStartTime;           //sale시작 시간
+    uint256 public saleEndTime;             //sale끝 시간
 
-    uint256 public claimStartTime = 0;
-    uint256 public claimEndTime = 0;
+    uint256 public firstClaimTime;           //초기 claim 시간
 
-    IERC20 public saleToken;
-    IERC20 public getToken;
+    uint256 public claimStartTime;  //6개월 뒤 claim시작 시간
+    uint256 public claimEndTime;    //claim시작시간 + 1년
+
+    uint256 public saleTokenPrice;  //판매토큰가격
+    uint256 public getTokenPrice;   //받는토큰가격(TON)
+
+    IERC20 public saleToken;        //판매할 token주소
+    IERC20 public getToken;         //TON 주소
 
     mapping (address => UserInfoAmount) public usersAmount;
     mapping (address => UserInfoClaim) public usersClaim;
     mapping (address => WhiteList) public usersWhite;
 
 
+    /// @dev basic setting
+    /// @param _saleTokenAddress saleTokenAddress (contract have token)
+    /// @param _getTokenAddress getTokenAddress (TON)
+    /// @param _getTokenOwner get TON transfer to wallet
     constructor(address _saleTokenAddress, address _getTokenAddress, address _getTokenOwner) {
         saleToken = IERC20(_saleTokenAddress);
         getToken = IERC20(_getTokenAddress);
         getTokenOwner = _getTokenOwner;
     }
 
-    function calculate(uint256 _amount) internal view returns (uint256){
-        require(rate != 0, "need the setting rate");
-        return rate*_amount/(1e6);
+    /// @dev calculator the SaleAmount(input TON how many get the anotherToken)
+    /// @param _amount input the TON amount
+    function calculSaleToken(uint256 _amount)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 tokenSaleAmount = _amount*getTokenPrice/saleTokenPrice;
+        return tokenSaleAmount;
     }
 
-    function rateChange(uint256 _rate) external onlyOwner {
-        require(block.timestamp <= saleStartTime || saleStartTime == 0, "already start the sale");
-        rate = _rate;
+    /// @dev calculator the getAmount(want to get _amount how many input the TON?)
+    /// @param _amount input the anotherTokenAmount
+    function calculGetToken(uint256 _amount)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 tokenGetAmount = _amount*saleTokenPrice/getTokenPrice;
+        return tokenGetAmount;
+    }
+
+    function changeTokenAddress(address _saleToken, address _getToken) external onlyOwner {
+        saleToken = IERC20(_saleToken);
+        getToken = IERC20(_getToken);
     }
 
     function changeGetAddress(address _address) external onlyOwner {
         getTokenOwner = _address;
     }
 
-    function settingSaleStartTime(uint256 _time) external onlyOwner {
-        saleStartTime = _time;
+    function settingAll(
+        uint256[4] calldata _time,
+        uint256 _saleTokenPrice,
+        uint256 _getTokenPrice
+    ) external onlyOwner {
+        settingPrivateTime(_time[0],_time[1],_time[2],_time[3]);
+        setTokenPrice(_saleTokenPrice,_getTokenPrice);
     }
 
-    function settingSaleEndTime(uint256 _time) external onlyOwner {
-        saleEndTime = _time;
+    function settingPrivateTime(
+        uint256 _startTime,
+        uint256 _endTime,
+        uint256 _firstTime,
+        uint256 _claimTime
+    ) public onlyOwner {
+        settingSaleTime(_startTime,_endTime);
+        settingFisrtClaimTime(_firstTime);
+        settingClaimTime(_claimTime);
     }
 
-    function settingClaimTime(uint256 _time) external onlyOwner {
+    function settingSaleTime(uint256 _startTime,uint256 _endTime) public onlyOwner {
+        saleStartTime = _startTime;
+        saleEndTime = _endTime;
+    }
+
+    function settingFisrtClaimTime(uint256 _claimTime) public onlyOwner {
+        firstClaimTime = _claimTime;
+    }
+
+    function settingClaimTime(uint256 _time) public onlyOwner {
         claimStartTime = _time;
         claimEndTime = _time + 360 days;
+    }
+
+    function setTokenPrice(uint256 _saleTokenPrice, uint256 _getTokenPrice)
+        public
+        onlyOwner
+    {
+        saleTokenPrice = _saleTokenPrice;
+        getTokenPrice = _getTokenPrice;
     }
 
     function claimAmount(
         address _account
     ) external view returns (uint256) {
-        UserInfoAmount storage user = usersAmount[_account];
+        UserInfoAmount memory user = usersAmount[_account];
 
         require(user.inputamount > 0, "user isn't buy");
         require(block.timestamp > claimStartTime, "need to time for claim");
         
-        UserInfoClaim storage userclaim = usersClaim[msg.sender];
+        UserInfoClaim memory userclaim = usersClaim[msg.sender];
 
         uint difftime = block.timestamp - claimStartTime;
         uint monthTime = 30 days;
@@ -167,6 +232,15 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         emit addList(_account, _amount);
     }
 
+    function addWhiteListArray(address[] calldata _account, uint256[] calldata _amount) external onlyOwner {
+        for(uint i = 0; i < _account.length; i++) {
+            WhiteList storage userwhite = usersWhite[_account[i]];
+            userwhite.amount = userwhite.amount + _amount[i];
+
+            emit addList(_account[i], _amount[i]);
+        }
+    }
+
     function delwhitelist(address _account, uint256 _amount) external onlyOwner {
         WhiteList storage userwhite = usersWhite[_account];
         userwhite.amount = userwhite.amount - _amount;
@@ -177,7 +251,6 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     function buy(
         uint256 _amount
     ) external {
-        require(rate != 0, "need to setting the rate");
         require(saleStartTime != 0 && saleEndTime != 0, "need to setting saleTime");
         require(block.timestamp >= saleStartTime && block.timestamp <= saleEndTime, "privaSale period end");
         WhiteList storage userwhite = usersWhite[msg.sender];
@@ -193,11 +266,11 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
     {
         UserInfoAmount storage user = usersAmount[msg.sender];
 
-        uint256 giveTokenAmount = calculate(_amount);
+        uint256 tokenSaleAmount = calculSaleToken(_amount);
         uint256 tokenBalance = saleToken.balanceOf(address(this));
 
         require(
-            tokenBalance >= giveTokenAmount,
+            tokenBalance >= tokenSaleAmount,
             "don't have token amount"
         );
 
@@ -208,33 +281,59 @@ contract tokenEscrow is Ownable, ReentrancyGuard {
         getToken.safeTransfer(getTokenOwner, _amount);
 
         user.inputamount = user.inputamount+_amount;
-        user.totaloutputamount = user.totaloutputamount+giveTokenAmount;
-        user.monthlyReward = user.totaloutputamount/12;
+        user.totaloutputamount = user.totaloutputamount+tokenSaleAmount;
+        user.firstReward = user.totaloutputamount*65/1250;
+        user.monthlyReward = (user.totaloutputamount-user.firstReward)/12;
         user.inputTime = block.timestamp;
 
-        totalgetAmount = totalgetAmount+_amount;
+        totalGetAmount = totalGetAmount+_amount;
+        totalSaleAmount = totalSaleAmount+tokenSaleAmount;
 
         emit Buyinfo(
             msg.sender, 
             user.inputamount, 
             user.totaloutputamount,
             user.inputTime,
-            user.monthlyReward
+            user.monthlyReward,
+            user.firstReward
         );
     }
 
-    function claim() external {
+    function firstClaim() public {
+        require(block.timestamp > saleEndTime && block.timestamp > firstClaimTime, "need the fisrClaimtime");
+        require(firstClaimTime != 0 && saleEndTime != 0, "need to setting Time");
+
         UserInfoAmount storage user = usersAmount[msg.sender];
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
         require(user.inputamount > 0, "need to buy the token");
+        require(userclaim.fistClaimAmount == 0, "already getFirstreward");
+
+        userclaim.fistClaimAmount = userclaim.fistClaimAmount + user.firstReward;
+        userclaim.firstClaimTime = block.timestamp;
+
+        saleToken.safeTransfer(msg.sender, user.firstReward);
+
+        emit FirstClaiminfo(msg.sender, userclaim.fistClaimAmount, userclaim.firstClaimTime);
+    }
+
+    function claim() external {
         require(block.timestamp >= claimStartTime, "need the time for claim");
-        require(!(user.totaloutputamount == userclaim.claimAmount), "already getAllreward");
+
+        UserInfoAmount storage user = usersAmount[msg.sender];
+        UserInfoClaim storage userclaim = usersClaim[msg.sender];
+
+        require(user.inputamount > 0, "need to buy the token");
+        require(!(user.totaloutputamount == (userclaim.claimAmount+userclaim.fistClaimAmount)), "already getAllreward");
+
+        if(userclaim.fistClaimAmount == 0) {
+            firstClaim();
+        }
 
         uint256 giveTokenAmount = calculClaimAmount(block.timestamp, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount);
     
         require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "user is already getAllreward");
-        require( saleToken.balanceOf(address(this)) >= giveTokenAmount, "dont have saleToken in pool");
+        require(saleToken.balanceOf(address(this)) >= giveTokenAmount, "dont have saleToken in pool");
 
         userclaim.claimAmount = userclaim.claimAmount + giveTokenAmount;
         userclaim.claimTime = block.timestamp;
