@@ -63,6 +63,7 @@ describe("token deploy", () => {
     let buyEndTime3 : any
 
     let nowTime: any
+    let fisrtClaimTime : any
     let claimTime1: any
     let claimTime2: any
     let claimTime3: any

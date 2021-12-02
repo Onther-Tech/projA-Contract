@@ -282,7 +282,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
 
         user.inputamount = user.inputamount+_amount;
         user.totaloutputamount = user.totaloutputamount+tokenSaleAmount;
-        user.firstReward = user.totaloutputamount*65/1250;
+        user.firstReward = user.totaloutputamount*625/12500;
         user.monthlyReward = (user.totaloutputamount-user.firstReward)/12;
         user.inputTime = block.timestamp;
 
@@ -303,7 +303,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         require(block.timestamp > saleEndTime && block.timestamp > firstClaimTime, "need the fisrClaimtime");
         require(firstClaimTime != 0 && saleEndTime != 0, "need to setting Time");
 
-        UserInfoAmount storage user = usersAmount[msg.sender];
+        UserInfoAmount memory user = usersAmount[msg.sender];
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
         require(user.inputamount > 0, "need to buy the token");
@@ -320,7 +320,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     function claim() external {
         require(block.timestamp >= claimStartTime, "need the time for claim");
 
-        UserInfoAmount storage user = usersAmount[msg.sender];
+        UserInfoAmount memory user = usersAmount[msg.sender];
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
         require(user.inputamount > 0, "need to buy the token");
