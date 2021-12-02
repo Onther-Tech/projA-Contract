@@ -43,3 +43,9 @@ npm run hardhat:privateSale
 2. rate비율 (컨트랙트 배포 후 sale시작전까지는 변경가능합니다, sale 시작 후 변경 불가합니다.) -> rateChange로 변경
 3. sale의 시작시간과 끝시간 -> settingSaleStartTime, settingSaleEndTime로 setting 가능합니다.
 4. claim시작 시간 -> settingClaimTime으로 setting 가능 (start시간을 넣으면 end시간은 start시간 기준으로 계산되어서 세팅됩니다.)
+
+<br>
+
+## DOC privateAddress
+0x70956c3e8492a0fb6986e9ceaa84ce27a0999fd9
+https://etherscan.io/address/0x70956c3e8492a0fb6986e9ceaa84ce27a0999fd9
