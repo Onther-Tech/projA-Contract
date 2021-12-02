@@ -47,5 +47,5 @@ npm run hardhat:privateSale
 <br>
 
 ## DOC privateAddress
-0x70956c3e8492a0fb6986e9ceaa84ce27a0999fd9
+0x70956c3e8492a0fb6986e9ceaa84ce27a0999fd9 <br>
 https://etherscan.io/address/0x70956c3e8492a0fb6986e9ceaa84ce27a0999fd9
