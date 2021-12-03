@@ -204,7 +204,8 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         uint256 _nowtime, 
         uint256 _preclaimamount,
         uint256 _monthlyReward,
-        uint256 _usertotaloutput
+        uint256 _usertotaloutput,
+        uint256 _fisrtReward
     ) internal view returns (uint256) {
         uint difftime = _nowtime- claimStartTime;
         uint monthTime = 30 days;
@@ -216,7 +217,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         } else {
             uint period = (difftime/monthTime)+1;
             if (period >= 12) {
-                uint256 reward = _usertotaloutput-_preclaimamount;
+                uint256 reward = _usertotaloutput-_preclaimamount-_fisrtReward;
                 return reward; 
             } else {
                 uint256 reward = (_monthlyReward*period)-_preclaimamount;
@@ -299,11 +300,22 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         );
     }
 
-    function firstClaim() public {
-        require(block.timestamp > saleEndTime && block.timestamp > firstClaimTime, "need the fisrClaimtime");
-        require(firstClaimTime != 0 && saleEndTime != 0, "need to setting Time");
+    // function claim() public {
+    //     require(firstClaimTime != 0 && saleEndTime != 0, "need to setting Time");
+    //     require(block.timestamp > saleEndTime && block.timestamp > firstClaimTime, "need the fisrClaimtime");
+    //     if(block.timestamp < claimStartTime) {
+    //         firstClaim();
+    //     } else if(claimStartTime<block.timestamp){
+    //         _claim();
+    //     }
+    // }
 
-        UserInfoAmount memory user = usersAmount[msg.sender];
+
+    function firstClaim() public {
+        require(firstClaimTime != 0 && saleEndTime != 0, "need to setting Time");
+        require(block.timestamp > saleEndTime && block.timestamp > firstClaimTime, "need the fisrClaimtime");
+        
+        UserInfoAmount storage user = usersAmount[msg.sender];
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
         require(user.inputamount > 0, "need to buy the token");
@@ -320,7 +332,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     function claim() external {
         require(block.timestamp >= claimStartTime, "need the time for claim");
 
-        UserInfoAmount memory user = usersAmount[msg.sender];
+        UserInfoAmount storage user = usersAmount[msg.sender];
         UserInfoClaim storage userclaim = usersClaim[msg.sender];
 
         require(user.inputamount > 0, "need to buy the token");
@@ -330,7 +342,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
             firstClaim();
         }
 
-        uint256 giveTokenAmount = calculClaimAmount(block.timestamp, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount);
+        uint256 giveTokenAmount = calculClaimAmount(block.timestamp, userclaim.claimAmount, user.monthlyReward, user.totaloutputamount, userclaim.fistClaimAmount);
     
         require(user.totaloutputamount - userclaim.claimAmount >= giveTokenAmount, "user is already getAllreward");
         require(saleToken.balanceOf(address(this)) >= giveTokenAmount, "dont have saleToken in pool");
