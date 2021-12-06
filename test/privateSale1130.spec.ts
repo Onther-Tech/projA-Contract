@@ -178,7 +178,7 @@ describe("token deploy", () => {
         })
 
         describe("whitelist setting", () => {
-            it("buy before whitelisting", async () => {
+            it("buy before saleTime", async () => {
                 let buy1 = privateSale.connect(account1).buy(account1TonAmount)
                 await expect(buy1).to.be.revertedWith("privaSale period end")
                 let buy2 = privateSale.connect(account2).buy(account2TonAmount)
@@ -284,7 +284,7 @@ describe("token deploy", () => {
                 let acc2balance = await domToken.balanceOf(account2.address);
                 expect(acc2balance).to.be.equal(0)
 
-                let acc3balance = await domToken.balanceOf(account2.address);
+                let acc3balance = await domToken.balanceOf(account3.address);
                 expect(acc3balance).to.be.equal(0)
 
                 await privateSale.connect(account2).firstClaim();
@@ -292,8 +292,8 @@ describe("token deploy", () => {
                 let acc2balance2 = await domToken.balanceOf(account2.address);
                 let user2 = await privateSale.usersAmount(account2.address);
                 expect(user2.firstReward).to.be.equal(acc2balance2)
-                let acc3balance2 = await domToken.balanceOf(account2.address);
-                let user3 = await privateSale.usersAmount(account2.address);
+                let acc3balance2 = await domToken.balanceOf(account3.address);
+                let user3 = await privateSale.usersAmount(account3.address);
                 expect(user3.firstReward).to.be.equal(acc3balance2)
             })
 
